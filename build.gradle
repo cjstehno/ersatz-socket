@@ -1,0 +1,41 @@
+plugins {
+    id 'java-library'
+}
+
+group = 'io.github.cjstehno.ersatz'
+version = '0.0.1'
+
+sourceCompatibility = 17
+targetCompatibility = 17
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation 'io.netty:netty-all:4.0.56.Final'
+
+    compileOnly 'org.projectlombok:lombok:1.18.24'
+    annotationProcessor 'org.projectlombok:lombok:1.18.24'
+
+    implementation 'org.slf4j:slf4j-api:1.7.36'
+
+    // Test dependencies
+
+    testImplementation 'ch.qos.logback:logback-classic:1.2.11'
+
+    testCompileOnly 'org.projectlombok:lombok:1.18.24'
+    testAnnotationProcessor 'org.projectlombok:lombok:1.18.24'
+
+    testImplementation 'org.junit.jupiter:junit-jupiter-params:5.8.2'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.8.2'
+    testImplementation 'org.hamcrest:java-hamcrest:2.0.0.0'
+}
+
+test {
+    useJUnitPlatform()
+    maxParallelForks = Math.min(Runtime.runtime.availableProcessors(), 8)
+
+    // fix some of the java module madness - sigh
+    jvmArgs '--add-opens', 'java.base/jdk.internal.misc=ALL-UNNAMED', '-Dio.netty.tryReflectionSetAccessible=true'
+}
