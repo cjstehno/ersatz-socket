@@ -3,8 +3,9 @@
  */
 package io.github.cjstehno.ersatz.socket;
 
-public class Library {
-    public boolean someLibraryMethod() {
-        return true;
-    }
+import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.*;
+
+class ErsatzSocketTest {
+
 }
