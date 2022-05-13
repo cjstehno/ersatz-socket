@@ -13,6 +13,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static java.lang.Thread.sleep;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 // FIXME: document emphemeral port and ad-hoc threads (zeros)
@@ -34,7 +35,7 @@ public class Server {
         return actualPort.get();
     }
 
-    public void start() {
+    public Server start(final boolean waitUntilStarted) {
         if (!running.get()) {
             log.debug("Starting...");
 
@@ -68,8 +69,23 @@ public class Server {
 
             });
 
-            // FIXME: would be nice to have an option to block until started
+
+            if (waitUntilStarted) {
+                log.debug("Waiting for server to start...");
+                while (!running.get()) {
+                    try {
+                        // TODO: better way to do this?
+                        //noinspection BusyWait
+                        sleep(100);
+                    } catch (InterruptedException e) {
+                        // just try again
+                    }
+                }
+                log.debug("Server started - moving on...");
+            }
         }
+
+        return this;
     }
 
     public void stop() {

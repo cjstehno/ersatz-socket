@@ -17,8 +17,7 @@ public class ServerTest {
     private Server server;
 
     @BeforeEach void beforeEach() {
-        server = new Server();
-        server.start();
+        server = new Server().start(true);
     }
 
     @AfterEach void afterEach() {
