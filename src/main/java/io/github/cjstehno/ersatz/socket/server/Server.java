@@ -133,6 +133,16 @@ public class Server {
             // FIXME: impl
             // FIXME: how would I send response (or other) on message (matched)
             log.info("Message: {}", message);
+
+            // respond with modified message
+            try {
+                val out = new DataOutputStream(output);
+                val bytes = (message.toString() + "-modified").getBytes(UTF_8);
+                out.writeInt(bytes.length);
+                out.write(bytes);
+            } catch (IOException ioe) {
+                log.error("Error: {}", ioe.getMessage(), ioe);
+            }
         }
 
         public void onDisconnect() {
@@ -152,7 +162,7 @@ public class Server {
             try (socket) {
                 log.info("Connected to {}.", socket.getRemoteSocketAddress());
 
-                try (val output = new BufferedOutputStream(socket.getOutputStream())) {
+                try (val output = socket.getOutputStream()) {
                     val context = new ConnectionContext(output);
                     context.onConnect();
 
@@ -183,7 +193,7 @@ public class Server {
         }
     }
 
-    private static class MessageDecoder {
+    static class MessageDecoder {
         // FIXME: replace with Function?
 
         public String decode(final InputStream stream) throws IOException {

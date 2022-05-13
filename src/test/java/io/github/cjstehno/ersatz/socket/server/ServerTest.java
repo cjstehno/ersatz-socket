@@ -8,8 +8,12 @@ import org.junit.jupiter.api.Test;
 
 import java.io.*;
 import java.net.Socket;
+import java.util.Set;
+import java.util.concurrent.CopyOnWriteArraySet;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @Slf4j
 public class ServerTest {
@@ -28,7 +32,10 @@ public class ServerTest {
         log.info("Starting test...");
 
         val encoder = new MessageEncoder();
+        val decoder = new Server.MessageDecoder();
         val connectDecoder = new ConnectMessageDecoder();
+
+        val responses = new CopyOnWriteArraySet<String>();
 
         try (val socket = new Socket("localhost", server.getPort())) {
             log.info("Connected...");
@@ -38,23 +45,28 @@ public class ServerTest {
 
             log.info("Received connection message - sending {} messages...", count);
 
-            val output = new BufferedOutputStream(socket.getOutputStream());
+            val output = socket.getOutputStream();
             for (int m = 0; m < count; m++) {
                 encoder.encode("Message-" + m, output);
             }
-            output.flush();
+
+            // listen for responses
+            for (int m = 0; m < count; m++) {
+                val response = decoder.decode(input);
+                log.info("Response: {}", response);
+                responses.add(response);
+            }
         }
 
         log.info("Done with test.");
-    }
 
-    /*
-        connect
-        wait for connection message
-        then fire messages
-        wait for responses
-        verify responses
-     */
+        assertEquals(10, responses.size());
+        assertTrue(responses.containsAll(Set.of(
+            "Message-0-modified", "Message-1-modified", "Message-2-modified", "Message-3-modified",
+            "Message-4-modified", "Message-5-modified", "Message-6-modified", "Message-7-modified",
+            "Message-8-modified", "Message-9-modified"
+        )));
+    }
 
     private static class MessageEncoder {
 
