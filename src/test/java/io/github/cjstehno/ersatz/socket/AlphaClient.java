@@ -50,8 +50,7 @@ public class AlphaClient {
             log.info("Connected on port {}...", port);
 
             val input = new BufferedInputStream(socket.getInputStream());
-//            int count = CONNECT_MESSAGE_DECODER.decode(input);
-            int count = 3;
+            int count = CONNECT_MESSAGE_DECODER.decode(input);
 
             log.info("Received connection message - sending {} messages...", count);
 

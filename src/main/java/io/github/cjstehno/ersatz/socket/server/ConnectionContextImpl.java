@@ -8,6 +8,7 @@ import lombok.val;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.NoSuchElementException;
 
 @RequiredArgsConstructor @Slf4j
 class ConnectionContextImpl implements ConnectionContext {
@@ -23,7 +24,7 @@ class ConnectionContextImpl implements ConnectionContext {
             val encoder = interactions.findEncoder(message.getClass()).orElseThrow();
             encoder.encode(message, output);
 
-        } catch (IOException e) {
+        } catch (Exception e) {
             // FIXME:
             log.error("Unable to send message ({}): {}", message, e.getMessage(), e);
         }

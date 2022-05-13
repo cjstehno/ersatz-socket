@@ -1,5 +1,6 @@
 package io.github.cjstehno.ersatz.socket;
 
+import io.github.cjstehno.ersatz.socket.impl.InteractionsImpl;
 import lombok.val;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -47,10 +48,10 @@ class ErsatzSocketServerTest {
     @BeforeEach void beforeEach() {
         server = new ErsatzSocketServer(cfg -> {
             // encode the response to the connection event
-            cfg.encoder(int.class, (message, stream) -> {
+            cfg.encoder(Integer.class, (message, stream) -> {
                 val out = new DataOutputStream(stream);
                 out.writeInt((int) message);
-//                out.flush();
+                out.flush();
             });
 
             // decode the incoming message
@@ -73,9 +74,9 @@ class ErsatzSocketServerTest {
 
     @Test void usage() throws IOException {
         server.interactions(ix -> {
-//            ix.onConnect(ctx -> {
-//                ctx.send(3);
-//            });
+            ix.onConnect(ctx -> {
+                ctx.send(3);
+            });
 
             ix.onMessage(startsWith("Message-"), (ctx, message) -> {
                 ctx.send(message + "-modified");
