@@ -13,13 +13,13 @@ import lombok.extern.slf4j.Slf4j;
 import static io.netty.channel.ChannelOption.SO_KEEPALIVE;
 
 @RequiredArgsConstructor @Slf4j
-public class DemoClient implements Runnable {
+public class DemoClient {
 
     private final String host;
     private final int port;
     private Bootstrap bootstrap;
 
-    public void run() {
+    public void connect() {
         EventLoopGroup workerGroup = new NioEventLoopGroup();
 
         try {
@@ -48,7 +48,9 @@ public class DemoClient implements Runnable {
         }
     }
 
-    public void stop() throws InterruptedException {
-        bootstrap.group().shutdownGracefully().sync();
+    public void disconnect() throws InterruptedException {
+        if (bootstrap != null) {
+            bootstrap.group().shutdownGracefully().sync();
+        }
     }
 }

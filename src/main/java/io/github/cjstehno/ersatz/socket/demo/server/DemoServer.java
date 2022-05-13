@@ -20,6 +20,8 @@ public class DemoServer implements Runnable {
     private ServerBootstrap bootstrap;
 
     public void run() {
+        log.info("Running...");
+
         EventLoopGroup bossGroup = new NioEventLoopGroup();
         EventLoopGroup workerGroup = new NioEventLoopGroup();
         try {
@@ -51,7 +53,11 @@ public class DemoServer implements Runnable {
     }
 
     public void stop() throws InterruptedException {
-        bootstrap.group().shutdownGracefully().sync();
-        bootstrap.childGroup().shutdownGracefully().sync();
+        log.info("Stopping...");
+        if (bootstrap != null) {
+            bootstrap.group().shutdownGracefully().sync();
+            bootstrap.childGroup().shutdownGracefully().sync();
+        }
+        log.info("Stopped.");
     }
 }

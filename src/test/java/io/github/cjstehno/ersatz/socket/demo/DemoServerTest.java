@@ -2,13 +2,23 @@ package io.github.cjstehno.ersatz.socket.demo;
 
 import io.github.cjstehno.ersatz.socket.demo.client.DemoClient;
 import io.github.cjstehno.ersatz.socket.demo.server.DemoServer;
+import lombok.extern.slf4j.Slf4j;
+import lombok.val;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.net.Socket;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicBoolean;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
+@Slf4j
 class DemoServerTest {
 
     private ExecutorService executor;
@@ -26,7 +36,7 @@ class DemoServerTest {
 
     @AfterEach void afterEach() throws InterruptedException {
         if (client != null) {
-            client.stop();
+            client.disconnect();
         }
 
         if (server != null) {
@@ -39,8 +49,41 @@ class DemoServerTest {
     }
 
     @Test void usage() throws InterruptedException {
-        executor.submit(client);
+        client.connect();
+        log.info("Done.");
+    }
 
-        Thread.sleep(2000);
+    @Test void customClient() throws Exception {
+        Thread.sleep(1000);
+
+        val clientSkt = new Socket("127.0.0.1", 10101);
+        val inputStream = new DataInputStream(clientSkt.getInputStream());
+        val running = new AtomicBoolean(true);
+
+        executor.submit(() -> {
+            while (running.get()) {
+                try {
+                    val value = inputStream.readInt();
+                    log.info("Response: {}", value);
+                } catch (IOException e) {
+                    log.error("Error: {}", e.getMessage(), e);
+                }
+            }
+        });
+
+        try (val output = new DataOutputStream(clientSkt.getOutputStream())) {
+            log.info("Sending request...");
+            output.writeInt(42);
+
+            val stringBytes = "the answer to everything".getBytes(UTF_8);
+            output.writeInt(stringBytes.length);
+            output.write(stringBytes);
+
+            output.flush();
+        }
+
+        Thread.sleep(1000);
+
+        running.set(false);
     }
 }

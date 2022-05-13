@@ -14,10 +14,22 @@ public class ClientHandler extends ChannelInboundHandlerAdapter {
         RequestData msg = new RequestData();
         msg.setIntValue(123);
         msg.setStringValue("all work and no play makes jack a dull boy");
-
         log.info("<client> Sending: {}", msg);
+        ctx.write(msg);
 
-        ChannelFuture future = ctx.writeAndFlush(msg);
+        msg = new RequestData();
+        msg.setIntValue(246);
+        msg.setStringValue("more data");
+        log.info("<client> Sending: {}", msg);
+        ctx.write(msg);
+
+        msg = new RequestData();
+        msg.setIntValue(111);
+        msg.setStringValue("third time is the charm");
+        log.info("<client> Sending: {}", msg);
+        ctx.write(msg);
+
+        ctx.flush();
     }
 
     @Override
