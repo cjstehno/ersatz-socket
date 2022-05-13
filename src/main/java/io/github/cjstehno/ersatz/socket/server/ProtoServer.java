@@ -18,7 +18,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 // FIXME: document emphemeral port and ad-hoc threads (zeros)
 @RequiredArgsConstructor @Slf4j
-public class Server {
+public class ProtoServer {
 
     private final int port;
     private final int workers;
@@ -27,7 +27,7 @@ public class Server {
     private ExecutorService executor;
     private Future<?> serverFuture;
 
-    public Server() {
+    public ProtoServer() {
         this(0, 0);
     }
 
@@ -35,7 +35,7 @@ public class Server {
         return actualPort.get();
     }
 
-    public Server start(final boolean waitUntilStarted) {
+    public ProtoServer start(final boolean waitUntilStarted) {
         if (!running.get()) {
             log.debug("Starting...");
 

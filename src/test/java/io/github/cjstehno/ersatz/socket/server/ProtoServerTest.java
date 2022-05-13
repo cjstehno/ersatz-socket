@@ -16,12 +16,12 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @Slf4j
-public class ServerTest {
+public class ProtoServerTest {
 
-    private Server server;
+    private ProtoServer server;
 
     @BeforeEach void beforeEach() {
-        server = new Server().start(true);
+        server = new ProtoServer().start(true);
     }
 
     @AfterEach void afterEach() {
@@ -32,7 +32,7 @@ public class ServerTest {
         log.info("Starting test...");
 
         val encoder = new MessageEncoder();
-        val decoder = new Server.MessageDecoder();
+        val decoder = new ProtoServer.MessageDecoder();
         val connectDecoder = new ConnectMessageDecoder();
 
         val responses = new CopyOnWriteArraySet<String>();
