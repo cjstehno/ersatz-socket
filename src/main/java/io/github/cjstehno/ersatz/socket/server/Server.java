@@ -23,7 +23,6 @@ public class Server {
     private final int port;
     private final int workers;
     private final AtomicBoolean running = new AtomicBoolean(false);
-    private final ServerContext context = new ServerContext();
     private ExecutorService executor;
     private Future<?> serverFuture;
 
@@ -44,7 +43,7 @@ public class Server {
                     log.info("Started on port {} with {} worker threads.", port, actualWorkers);
 
                     while (running.get()) {
-                        executor.submit(new ConnectionHandler(context, running, serverSkt.accept()));
+                        executor.submit(new ConnectionHandler(running, serverSkt.accept()));
                     }
 
                     log.debug("Server thread is terminating.");
@@ -78,27 +77,44 @@ public class Server {
     }
 
     // FIXME: better name
-    @Slf4j
-    private static class ServerContext {
+    // FIXME: this shoudl probably come from the server via a factory method?
+    @RequiredArgsConstructor @Slf4j
+    private static class ConnectionContext {
         // FIXME:  async or thread-safe
+
+        private final OutputStream output;
 
         public void onConnect() {
             // fIXME: do something on connection
+            // FIXME: how woudl I send a message (or more) on connect?
+            // FIXME: consider how to send delayed message to client after connect
             log.info("Connected");
-        }
 
-        // FIXME: how do you respond?
+            // send message with number of items to be sent
+            try {
+                val out = new DataOutputStream(output);
+                out.writeInt(10);
+                out.flush();
+            } catch (IOException ioe){
+                log.error("Error: {}", ioe.getMessage(), ioe);
+            }
+        }
 
         public void onMessage(final Object message) {
             // FIXME: impl
+            // FIXME: how would I send response (or other) on message (matched)
             log.info("Message: {}", message);
+        }
+
+        public void onDisconnect() {
+            // FIXME: ?
+            log.info("Disconnected.");
         }
     }
 
     @RequiredArgsConstructor @Slf4j
     private static class ConnectionHandler implements Runnable {
 
-        private final ServerContext context;
         private final AtomicBoolean running;
         private final Socket socket;
         private final MessageDecoder decoder = new MessageDecoder();
@@ -107,21 +123,26 @@ public class Server {
             try (socket) {
                 log.info("Connected to {}.", socket.getRemoteSocketAddress());
 
-                context.onConnect();
+                try (val output = new BufferedOutputStream(socket.getOutputStream())) {
+                    val context = new ConnectionContext(output);
+                    context.onConnect();
 
-                // read from the socket
-                try (val input = new BufferedInputStream(socket.getInputStream())) {
-                    while (running.get()) {
-                        try {
-                            val message = decoder.decode(input);
-                            context.onMessage(message);
-                        } catch (EOFException eof) {
-                            // ignore?
-                        } catch (IOException ioe) {
-                            // single message decoding should not kill server
-                            log.error("Decoding error: {}", ioe.getMessage(), ioe);
+                    // read from the socket
+                    try (val input = new BufferedInputStream(socket.getInputStream())) {
+                        while (running.get()) {
+                            try {
+                                val message = decoder.decode(input);
+                                context.onMessage(message);
+                            } catch (EOFException eof) {
+                                // ignore?
+                            } catch (IOException ioe) {
+                                // single message decoding should not kill server
+                                log.error("Decoding error: {}", ioe.getMessage(), ioe);
+                            }
                         }
                     }
+
+                    context.onDisconnect();
                 }
 
             } catch (IOException e) {

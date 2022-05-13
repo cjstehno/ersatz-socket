@@ -6,10 +6,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.io.BufferedOutputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
-import java.io.OutputStream;
+import java.io.*;
 import java.net.Socket;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
@@ -32,20 +29,34 @@ public class ServerTest {
         log.info("Starting test...");
 
         val encoder = new MessageEncoder();
+        val connectDecoder = new ConnectMessageDecoder();
 
         try (val socket = new Socket("localhost", 10101)) {
-            log.info("Connected - sending data...");
+            log.info("Connected...");
+
+            val input = new BufferedInputStream(socket.getInputStream());
+            int count = connectDecoder.decode(input);
+
+            log.info("Received connection message - sending {} messages...", count);
 
             try (val output = new BufferedOutputStream(socket.getOutputStream())) {
-                encoder.encode("Alpha", output);
-                encoder.encode("Bravo", output);
-                encoder.encode("Charlie", output);
+                for (int m = 0; m < count; m++) {
+                    encoder.encode("Message-" + m, output);
+                }
                 output.flush();
             }
         }
 
         log.info("Done with test.");
     }
+
+    /*
+        connect
+        wait for connection message
+        then fire messages
+        wait for responses
+        verify responses
+     */
 
     private static class MessageEncoder {
 
@@ -57,10 +68,11 @@ public class ServerTest {
         }
     }
 
-    /*
-        request / response :
-            int - length
-            bytes - string (utf-8)
+    private static class ConnectMessageDecoder {
 
-     */
+        public int decode(final InputStream stream) throws IOException {
+            val input = new DataInputStream(stream);
+            return input.readInt();
+        }
+    }
 }
