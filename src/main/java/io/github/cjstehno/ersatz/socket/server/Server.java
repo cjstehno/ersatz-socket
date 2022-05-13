@@ -11,36 +11,49 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
+// FIXME: document emphemeral port and ad-hoc threads (zeros)
 @RequiredArgsConstructor @Slf4j
 public class Server {
-
-    // FIXME: allow 0 port for ephemeral
-    // FIXME: allow 0 workers for "as many as it takes" cached pool
 
     private final int port;
     private final int workers;
     private final AtomicBoolean running = new AtomicBoolean(false);
+    private final AtomicInteger actualPort = new AtomicInteger();
     private ExecutorService executor;
     private Future<?> serverFuture;
+
+    public Server() {
+        this(0, 0);
+    }
+
+    public int getPort() {
+        return actualPort.get();
+    }
 
     public void start() {
         if (!running.get()) {
             log.debug("Starting...");
 
-            val actualWorkers = workers + 1;
+            if (workers > 0) {
+                val actualWorkers = workers + 1;
+                executor = Executors.newFixedThreadPool(actualWorkers);
+                log.info("Started thread pool with {} workers...", actualWorkers);
+            } else {
+                executor = Executors.newCachedThreadPool();
+                log.info("Started thread pool with cached workers...");
+            }
 
-            executor = Executors.newFixedThreadPool(actualWorkers);
-            log.debug("Started thread pool with {} workers...", actualWorkers);
-
-            executor.submit(() -> {
+            serverFuture = executor.submit(() -> {
                 log.debug("Starting server thread...");
 
                 try (val serverSkt = new ServerSocket(port)) {
+                    actualPort.set(serverSkt.getLocalPort());
                     running.set(true);
-                    log.info("Started on port {} with {} worker threads.", port, actualWorkers);
+                    log.info("Started on port {}.", serverSkt.getLocalPort());
 
                     while (running.get()) {
                         executor.submit(new ConnectionHandler(running, serverSkt.accept()));
@@ -95,7 +108,7 @@ public class Server {
                 val out = new DataOutputStream(output);
                 out.writeInt(10);
                 out.flush();
-            } catch (IOException ioe){
+            } catch (IOException ioe) {
                 log.error("Error: {}", ioe.getMessage(), ioe);
             }
         }

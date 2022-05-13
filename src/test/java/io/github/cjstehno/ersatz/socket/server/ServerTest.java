@@ -17,7 +17,7 @@ public class ServerTest {
     private Server server;
 
     @BeforeEach void beforeEach() {
-        server = new Server(10101, 2);
+        server = new Server();
         server.start();
     }
 
@@ -31,7 +31,7 @@ public class ServerTest {
         val encoder = new MessageEncoder();
         val connectDecoder = new ConnectMessageDecoder();
 
-        try (val socket = new Socket("localhost", 10101)) {
+        try (val socket = new Socket("localhost", server.getPort())) {
             log.info("Connected...");
 
             val input = new BufferedInputStream(socket.getInputStream());
