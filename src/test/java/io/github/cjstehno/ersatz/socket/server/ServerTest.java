@@ -39,12 +39,11 @@ public class ServerTest {
 
             log.info("Received connection message - sending {} messages...", count);
 
-            try (val output = new BufferedOutputStream(socket.getOutputStream())) {
-                for (int m = 0; m < count; m++) {
-                    encoder.encode("Message-" + m, output);
-                }
-                output.flush();
+            val output = new BufferedOutputStream(socket.getOutputStream());
+            for (int m = 0; m < count; m++) {
+                encoder.encode("Message-" + m, output);
             }
+            output.flush();
         }
 
         log.info("Done with test.");
