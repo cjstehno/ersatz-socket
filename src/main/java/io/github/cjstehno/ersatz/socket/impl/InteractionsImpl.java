@@ -6,20 +6,23 @@ import io.github.cjstehno.ersatz.socket.encdec.Decoder;
 import io.github.cjstehno.ersatz.socket.encdec.Encoder;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import lombok.val;
 import org.hamcrest.Matcher;
 
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 @RequiredArgsConstructor
 public class InteractionsImpl implements Interactions {
 
-    private final AtomicReference<Decoder<?>> decoder;
-    private final Map<Class<?>, Encoder> encoders;
+    private final ServerConfigImpl serverConfig;
+    private final Map<Class<?>, Encoder> encoders = new HashMap<>();
+    private Decoder<?> decoder;
+
     @Getter private Consumer<ConnectionContext> connectInteraction = (ctx) -> {
         // no-op by default
     };
@@ -43,16 +46,24 @@ public class InteractionsImpl implements Interactions {
 
     // overwrites
     @Override public <T> Interactions decoder(final Class<T> messageType, final Decoder<T> decoder) {
-        this.decoder.set(decoder);
+        this.decoder = decoder;
         return this;
     }
 
     public Optional<Encoder> findEncoder(final Class<?> type) {
-        return Optional.ofNullable(encoders.get(type));
+        if( encoders.containsKey(type)){
+            return Optional.of(encoders.get(type));
+        } else {
+            return serverConfig.findEncoder(type);
+        }
     }
 
     public Optional<Decoder<?>> decoder() {
-        return Optional.ofNullable(decoder.get());
+        if( decoder != null){
+            return Optional.of(decoder);
+        } else {
+            return serverConfig.decoder();
+        }
     }
 
     public Optional<BiConsumer<ConnectionContext, Object>> findMessageInteraction(final Object message) {

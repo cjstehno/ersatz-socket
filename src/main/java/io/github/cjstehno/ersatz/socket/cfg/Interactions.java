@@ -10,6 +10,7 @@ import java.util.function.Consumer;
 public interface Interactions {
 
     // FIXME: called(n)
+    // FIXME: listeners
 
     <T> Interactions encoder(Class<T> messageType, Encoder encoder);
 

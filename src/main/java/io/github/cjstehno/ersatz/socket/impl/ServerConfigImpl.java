@@ -8,7 +8,7 @@ import lombok.Getter;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicReference;
+import java.util.Optional;
 import java.util.function.Consumer;
 
 public class ServerConfigImpl implements ServerConfig {
@@ -16,13 +16,13 @@ public class ServerConfigImpl implements ServerConfig {
     @Getter private int port = 0;
     @Getter private int workerThreads = 0;
     @Getter private boolean autoStart = true;
-    private final Map<Class<?>, Encoder> encoders = new HashMap<>();
-    private final AtomicReference<Decoder<?>> decoder = new AtomicReference<>();
     @Getter private final InteractionsImpl interactions;
+    private final Map<Class<?>, Encoder> encoders = new HashMap<>();
+    private Decoder<?> decoder;
     private Runnable starter;
 
     public ServerConfigImpl() {
-        interactions = new InteractionsImpl(decoder, encoders);
+        interactions = new InteractionsImpl(this);
     }
 
     public void setStarter(final Runnable starter) {
@@ -50,7 +50,7 @@ public class ServerConfigImpl implements ServerConfig {
     }
 
     @Override public <T> ServerConfig decoder(final Class<T> messageType, final Decoder<T> decoder) {
-        this.decoder.set(decoder);
+        this.decoder = decoder;
         return this;
     }
 
@@ -62,5 +62,13 @@ public class ServerConfigImpl implements ServerConfig {
         }
 
         return this;
+    }
+
+    public Optional<Encoder> findEncoder(final Class<?> type) {
+        return Optional.ofNullable(encoders.get(type));
+    }
+
+    public Optional<Decoder<?>> decoder() {
+        return Optional.ofNullable(decoder);
     }
 }
