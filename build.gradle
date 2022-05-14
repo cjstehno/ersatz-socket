@@ -22,6 +22,9 @@ dependencies {
 
     api 'org.hamcrest:hamcrest-library:2.2'
 
+    // this is required for the test extension
+    compileOnly "org.junit.jupiter:junit-jupiter-api:5.8.2"
+
     // Test dependencies
 
     testImplementation 'ch.qos.logback:logback-classic:1.2.11'
