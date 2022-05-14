@@ -15,7 +15,6 @@
  */
 package io.github.cjstehno.ersatz.socket;
 
-import io.github.cjstehno.ersatz.socket.impl.InteractionsImpl;
 import lombok.val;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -33,30 +32,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ErsatzSocketServerTest {
 
-    /*
-        // encoders/decoders can be defined in config or interactions block (overrides)
-
-        val server = new ErsatzSocketServer();
-        server.interactions(cfg -> {
-            cfg.encoder(int.class, ...); // writes int to output stream
-            cfg.decoder(String.class, ...); // reads string from input stream
-
-            cfg.onConnect(session -> {
-                // int.class encoder will be used
-                session.send(10);
-                // do other stuff
-            });
-
-            // number of message (type may be part of matcher?)
-            cfg.onMessage(matching, (session, message) -> {
-                session.send("a response");
-                // do stuff
-            })
-        });
-
-        how to account for multiple onMessage matchers - dont want to corrupt message buffer
-        matcher trys to decode message and match its data - if it matches the decoded message is passed to the consumer
-     */
+    // FIXME: ensure can have multiple onMessage blocks
 
     private ErsatzSocketServer server;
 
@@ -80,7 +56,7 @@ class ErsatzSocketServerTest {
             // encode the outgoing response message
             cfg.encoder(String.class, (message, stream) -> {
                 val out = new DataOutputStream(stream);
-                val bytes = ((String)message).getBytes(UTF_8);
+                val bytes = ((String) message).getBytes(UTF_8);
                 out.writeInt(bytes.length);
                 out.write(bytes);
             });
@@ -101,8 +77,9 @@ class ErsatzSocketServerTest {
         val client = new AlphaClient(server.getPort());
         client.connect();
 
-        assertEquals(3, client.getResponses().size());
-        assertTrue(client.getResponses().containsAll(Set.of(
+        val responses = client.getResponses();
+        assertEquals(3, responses.size());
+        assertTrue(responses.containsAll(Set.of(
             "Message-0-modified", "Message-1-modified", "Message-2-modified"
         )));
     }
