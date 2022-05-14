@@ -22,31 +22,65 @@ import java.util.function.Consumer;
 
 public interface ServerConfig {
 
-    // avoid - 0 for ephemeral (Default)
+    /**
+     * Configures the server port to be used. Generally, you should not set this unless you really need to (and know
+     * what you are doing). The default of 0 will find a "random" available port to use.
+     *
+     * By overriding the default you can set yourself up for port collisions.
+     *
+     * @param value the port value
+     * @return a reference to this config
+     */
     ServerConfig port(final int value);
 
-    // generally use default (0) which creates cached threads
+    /**
+     * Configures the number of worker threads (a single thread will also be started for the server itself). The default
+     * value of 0 will allow threads to be created as needed (cached for reuse), which is recommended.
+     *
+     * @param value the worker thread count
+     * @return a reference to this config
+     */
     ServerConfig workerThreads(final int value);
 
+    /**
+     * Configures the auto-starting of the server after interactions are applied. The default value is true, so you
+     * really only need to disable this feature - note that you will need to call the <pre>start()</pre> method in
+     * your code if you do so.
+     *
+     * @param enabled whether the auto-start is enabled
+     * @return a reference to this config
+     */
     ServerConfig autoStart(boolean enabled);
 
+    /**
+     * Configures a response encoder for a specific message type.
+     *
+     * @param messageType the response message type to be encoded
+     * @param encoder the encoder
+     * @return a reference to this config
+     */
     ServerConfig encoder(final Class<?> messageType, final Encoder encoder);
 
     /**
-     * FIXME: document
-     * <p>
-     * Only one decoder is allowed in a configuration. This is due to the lack of ability to determine whether
-     * a decoder matches the incoming message without decoding it.
-     * I feel that it is fair limitation at this point - if your server can accept different message types that
-     * have no unified interface, you can simply write a separate test for each message type.
+     * Configures the decoder to be used. Due to the nature of the request data streams only one decoder may (and MUST)
+     * be defined for decoding all incoming messages.
      *
-     * @param messageType
-     * @param decoder
-     * @param <T>
-     * @return
+     * If your scenario has a server that accepts multiple request formats with no commonality, you should create a
+     * separate test case for each with its own decoder defined.
+     *
+     * @param messageType the request message type
+     * @param decoder the decoder
+     * @param <T> the message type
+     * @return a reference to this config
      */
     <T> ServerConfig decoder(final Class<T> messageType, final Decoder<T> decoder);
 
+    /**
+     * Configures the interactions that are supported with the server (along with responses).
+     *
+     * @param consumer the configuration consumer
+     * @return a reference to this config
+     */
     ServerConfig interactions(final Consumer<Interactions> consumer);
 
     /// FIXME: reportToConsole

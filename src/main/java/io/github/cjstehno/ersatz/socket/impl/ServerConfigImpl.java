@@ -86,4 +86,8 @@ public class ServerConfigImpl implements ServerConfig {
     public Optional<Decoder<?>> decoder() {
         return Optional.ofNullable(decoder);
     }
+
+    public void resetInteractions(){
+        interactions.reset();
+    }
 }

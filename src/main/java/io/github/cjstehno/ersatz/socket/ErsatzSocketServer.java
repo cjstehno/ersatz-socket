@@ -48,8 +48,6 @@ public class ErsatzSocketServer implements Closeable {
         return underlyingServer.getActualPort();
     }
 
-    // FIXME: maybe an InetAddress helper or something (e.g. localhost+ port)
-
     public ErsatzSocketServer interactions(final Consumer<Interactions> interactions){
         serverConfig.interactions(interactions);
 
@@ -60,8 +58,9 @@ public class ErsatzSocketServer implements Closeable {
         return this;
     }
 
-    // FIXME: clearInteractions
-
+    public void resetInteractions() {
+        serverConfig.resetInteractions();
+    }
 
     public ErsatzSocketServer start(){
         underlyingServer.start();
@@ -71,9 +70,6 @@ public class ErsatzSocketServer implements Closeable {
     public void stop(){
         underlyingServer.stop();
     }
-
-
-    // FIXME: verify
 
     @Override public void close() throws IOException {
         stop();

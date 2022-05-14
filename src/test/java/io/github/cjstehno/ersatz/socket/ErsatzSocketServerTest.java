@@ -33,6 +33,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class ErsatzSocketServerTest {
 
     // FIXME: ensure can have multiple onMessage blocks
+    // FIXME: need a JUnit 5 Extension for this (call reset after each)
 
     private ErsatzSocketServer server;
 
