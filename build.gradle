@@ -1,5 +1,6 @@
 plugins {
     id 'java-library'
+    id "com.github.hierynomus.license" version '0.16.1'
 }
 
 group = 'io.github.cjstehno.ersatz'
@@ -46,4 +47,14 @@ test {
     // fix some of the java module madness - sigh
     // FIXME: I think I can remove this
     jvmArgs '--add-opens', 'java.base/jdk.internal.misc=ALL-UNNAMED', '-Dio.netty.tryReflectionSetAccessible=true'
+}
+
+license {
+    header = file('config/license_header.txt')
+
+    ignoreFailures false
+
+    ext.year = Calendar.instance.get(Calendar.YEAR)
+
+    excludes(['**/*.txt', '**/*.dtd', '**/*.xml', '**/*.ent', '**/*.jks', '**/*.jpg'])
 }
