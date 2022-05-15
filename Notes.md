@@ -13,3 +13,4 @@ common interface, you can create separate tests for each different input type (w
 * No "listener" type hook is needed since you can wire in anything you want in the onConnect and onMessage handlers.
 * No "called(?)" verification interface is needed since you can do it with an atomic counter if you want it
 * No verification step is needed (due to the above)
+* since there is no validation there is not really anything to report - this becomes more of a simulator or mocking tool

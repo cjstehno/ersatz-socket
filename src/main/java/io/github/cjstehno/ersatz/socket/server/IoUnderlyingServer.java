@@ -30,7 +30,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @RequiredArgsConstructor @Slf4j
-public class UnderlyingServerImpl implements UnderlyingServer {
+public class IoUnderlyingServer implements UnderlyingServer {
 
     private final ServerConfigImpl serverConfig;
     private final AtomicBoolean running = new AtomicBoolean(false);

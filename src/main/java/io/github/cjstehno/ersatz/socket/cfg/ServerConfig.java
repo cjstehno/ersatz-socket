@@ -83,5 +83,5 @@ public interface ServerConfig {
      */
     ServerConfig interactions(final Consumer<Interactions> consumer);
 
-    /// FIXME: reportToConsole
+    /// FIXME: reportToConsole - is there anything to report?
 }
