@@ -1,12 +1,12 @@
 /**
  * Copyright (C) 2022 Christopher J. Stehno
- *
+ * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
- *         http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -15,7 +15,7 @@
  */
 package io.github.cjstehno.ersatz.socket.server;
 
-import io.github.cjstehno.ersatz.socket.impl.InteractionsImpl;
+import io.github.cjstehno.ersatz.socket.impl.ServerConfigImpl;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
@@ -31,7 +31,7 @@ import static lombok.AccessLevel.PACKAGE;
 @RequiredArgsConstructor(access = PACKAGE) @Slf4j
 class ConnectionHandler implements Runnable {
 
-    private final InteractionsImpl interactions;
+    private final ServerConfigImpl serverConfig;
     private final AtomicBoolean running;
     private final Socket socket;
 
@@ -40,13 +40,14 @@ class ConnectionHandler implements Runnable {
             log.info("Connected to {}.", socket.getRemoteSocketAddress());
 
             try (val output = socket.getOutputStream()) {
-                val context = new ConnectionContextImpl(interactions, output);
+                val context = new ConnectionContextImpl(serverConfig, output);
 
                 // handle the connection interactions
+                val interactions = serverConfig.getInteractions();
                 interactions.getConnectInteraction().accept(context);
 
                 // FIXME: throw useful exception
-                val decoder = interactions.decoder().orElseThrow();
+                val decoder = serverConfig.decoder().orElseThrow();
 
                 // read from the socket
                 try (val input = new BufferedInputStream(socket.getInputStream())) {

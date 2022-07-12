@@ -1,12 +1,12 @@
 /**
  * Copyright (C) 2022 Christopher J. Stehno
- *
+ * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
- *         http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -56,27 +56,21 @@ public interface ServerConfig {
     ServerConfig autoStart(boolean enabled);
 
     /**
-     * Configures a response encoder for a specific message type.
      *
-     * @param messageType the response message type to be encoded
+     *
      * @param encoder the encoder
      * @return a reference to this config
      */
-    ServerConfig encoder(final Class<?> messageType, final Encoder encoder);
+    ServerConfig encoder(final Encoder encoder);
 
     /**
-     * Configures the decoder to be used. Due to the nature of the request data streams only one decoder may (and MUST)
-     * be defined for decoding all incoming messages.
-     *
-     * If your scenario has a server that accepts multiple request formats with no commonality, you should create a
-     * separate test case for each with its own decoder defined.
      *
      * @param messageType the request message type
      * @param decoder the decoder
      * @param <T> the message type
      * @return a reference to this config
      */
-    <T> ServerConfig decoder(final Class<T> messageType, final Decoder<T> decoder);
+    <T> ServerConfig decoder(final Decoder<T> decoder);
 
     /**
      * Configures the interactions that are supported with the server (along with responses).

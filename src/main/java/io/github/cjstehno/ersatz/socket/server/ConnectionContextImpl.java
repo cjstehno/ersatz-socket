@@ -1,12 +1,12 @@
 /**
  * Copyright (C) 2022 Christopher J. Stehno
- *
+ * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
- *         http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -16,17 +16,16 @@
 package io.github.cjstehno.ersatz.socket.server;
 
 import io.github.cjstehno.ersatz.socket.cfg.ConnectionContext;
-import io.github.cjstehno.ersatz.socket.impl.InteractionsImpl;
+import io.github.cjstehno.ersatz.socket.impl.ServerConfigImpl;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import lombok.val;
 
 import java.io.OutputStream;
 
 @RequiredArgsConstructor @Slf4j
 class ConnectionContextImpl implements ConnectionContext {
 
-    private final InteractionsImpl interactions;
+    private final ServerConfigImpl serverConfig;
     private final OutputStream output;
 
     @Override public void send(final Object message) {
@@ -34,8 +33,9 @@ class ConnectionContextImpl implements ConnectionContext {
             log.info("Sending: {}", message);
 
             // FIXME: throw useful exception (here and below)
-            val encoder = interactions.findEncoder(message.getClass()).orElseThrow();
-            encoder.encode(message, output);
+            serverConfig.encoder()
+                .orElseThrow()
+                .encode(message, output);
 
         } catch (Exception e) {
             // FIXME:

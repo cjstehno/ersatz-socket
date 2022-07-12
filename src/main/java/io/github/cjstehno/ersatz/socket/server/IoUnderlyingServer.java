@@ -57,7 +57,7 @@ public class IoUnderlyingServer implements UnderlyingServer {
                     log.info("Started on port {}.", serverSkt.getLocalPort());
 
                     while (running.get()) {
-                        executor.submit(new ConnectionHandler(serverConfig.getInteractions(), running, serverSkt.accept()));
+                        executor.submit(new ConnectionHandler(serverConfig, running, serverSkt.accept()));
                     }
 
                     log.debug("Server thread is terminating.");
