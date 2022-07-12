@@ -22,6 +22,9 @@ import java.util.function.Consumer;
 
 public interface ServerConfig {
 
+    // FIXME: ssl?
+    // FIXME: helper decoder for decoding multiple messages based on an "envelope"
+
     /**
      * Configures the server port to be used. Generally, you should not set this unless you really need to (and know
      * what you are doing). The default of 0 will find a "random" available port to use.

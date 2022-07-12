@@ -14,3 +14,5 @@ common interface, you can create separate tests for each different input type (w
 * No "called(?)" verification interface is needed since you can do it with an atomic counter if you want it
 * No verification step is needed (due to the above)
 * since there is no validation there is not really anything to report - this becomes more of a simulator or mocking tool
+
+Come up with a helper for decoding multiple messages in a single decoder

@@ -64,6 +64,7 @@ public class ServerConfigImpl implements ServerConfig {
         return this;
     }
 
+    // FIXME: remove the mssage type its not used
     @Override public <T> ServerConfig decoder(final Class<T> messageType, final Decoder<T> decoder) {
         this.decoder = decoder;
         return this;
