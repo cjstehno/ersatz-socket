@@ -1,12 +1,12 @@
 /**
  * Copyright (C) 2022 Christopher J. Stehno
- * <p>
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * <p>
- * http://www.apache.org/licenses/LICENSE-2.0
- * <p>
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -28,7 +28,7 @@ public interface ServerConfig {
     /**
      * Configures the server port to be used. Generally, you should not set this unless you really need to (and know
      * what you are doing). The default of 0 will find a "random" available port to use.
-     *
+     * <p>
      * By overriding the default you can set yourself up for port collisions.
      *
      * @param value the port value
@@ -56,7 +56,7 @@ public interface ServerConfig {
     ServerConfig autoStart(boolean enabled);
 
     /**
-     *
+     * ... only one (but may be configured ad-hoc)
      *
      * @param encoder the encoder
      * @return a reference to this config
@@ -64,10 +64,23 @@ public interface ServerConfig {
     ServerConfig encoder(final Encoder encoder);
 
     /**
+     * Allows direct message type configuration of an encoder when the underlying encoder is the
+     * <code>MessageTypeEncoder</code>, which will be created if no other encoder has been configured.
+     * <p>
+     * This is a helper method for configuration of a standard usage pattern.
+     *
+     * @param messageType
+     * @param encoder
+     * @return
+     */
+    ServerConfig encoder(final Class<?> messageType, final Encoder encoder);
+
+    /**
+     * ... only one
      *
      * @param messageType the request message type
-     * @param decoder the decoder
-     * @param <T> the message type
+     * @param decoder     the decoder
+     * @param <T>         the message type
      * @return a reference to this config
      */
     <T> ServerConfig decoder(final Decoder<T> decoder);

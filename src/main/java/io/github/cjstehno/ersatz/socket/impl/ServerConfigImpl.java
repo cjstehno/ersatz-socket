@@ -1,12 +1,12 @@
 /**
  * Copyright (C) 2022 Christopher J. Stehno
- * <p>
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * <p>
- * http://www.apache.org/licenses/LICENSE-2.0
- * <p>
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -19,10 +19,13 @@ import io.github.cjstehno.ersatz.socket.cfg.Interactions;
 import io.github.cjstehno.ersatz.socket.cfg.ServerConfig;
 import io.github.cjstehno.ersatz.socket.encdec.Decoder;
 import io.github.cjstehno.ersatz.socket.encdec.Encoder;
+import io.github.cjstehno.ersatz.socket.encdec.MessageTypeEncoder;
 import lombok.Getter;
 
 import java.util.Optional;
 import java.util.function.Consumer;
+
+import static io.github.cjstehno.ersatz.socket.encdec.MessageTypeEncoder.byMessageType;
 
 public class ServerConfigImpl implements ServerConfig {
 
@@ -59,6 +62,23 @@ public class ServerConfigImpl implements ServerConfig {
 
     @Override public ServerConfig encoder(final Encoder encoder) {
         this.encoder = encoder;
+        return this;
+    }
+
+    @Override public ServerConfig encoder(final Class<?> messageType, final Encoder encoder) {
+        if (this.encoder == null) {
+            // there is no encoder so assume this is what they want
+            this.encoder = byMessageType().encoderFor(messageType, encoder);
+
+        } else if (this.encoder instanceof MessageTypeEncoder) {
+            // we just add the new type encoder
+            ((MessageTypeEncoder) this.encoder).encoderFor(messageType, encoder);
+
+        } else {
+            throw new IllegalArgumentException(
+                "The configured encoder (" + this.encoder.getClass().getSimpleName() + ") does not support direct configuration."
+            );
+        }
         return this;
     }
 
