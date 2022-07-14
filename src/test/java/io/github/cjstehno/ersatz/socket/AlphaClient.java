@@ -61,6 +61,7 @@ public class AlphaClient {
     @Getter private final Set<String> responses = new CopyOnWriteArraySet<>();
 
     public void connect() throws IOException {
+        log.info("Connecting on port {}...", port);
         try (val socket = new Socket("localhost", port)) {
             log.info("Connected on port {}...", port);
 

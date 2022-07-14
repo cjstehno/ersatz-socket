@@ -23,7 +23,7 @@ import lombok.extern.slf4j.Slf4j;
 import java.io.OutputStream;
 
 @RequiredArgsConstructor @Slf4j
-class ConnectionContextImpl implements ConnectionContext {
+public class ConnectionContextImpl implements ConnectionContext {
 
     private final ServerConfigImpl serverConfig;
     private final OutputStream output;

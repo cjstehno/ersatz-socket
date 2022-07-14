@@ -20,6 +20,9 @@ dependencies {
     implementation 'org.slf4j:slf4j-api:1.7.36'
     implementation 'commons-io:commons-io:2.11.0'
 
+    // TODO: maybe pull this impl into a sub-project?
+    implementation 'io.netty:netty-all:4.1.10.Final'
+
     api 'org.hamcrest:hamcrest-library:2.2'
 
     // this is required for the test extension

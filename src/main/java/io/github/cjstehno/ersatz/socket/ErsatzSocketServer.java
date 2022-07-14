@@ -18,8 +18,9 @@ package io.github.cjstehno.ersatz.socket;
 import io.github.cjstehno.ersatz.socket.cfg.Interactions;
 import io.github.cjstehno.ersatz.socket.cfg.ServerConfig;
 import io.github.cjstehno.ersatz.socket.impl.ServerConfigImpl;
-import io.github.cjstehno.ersatz.socket.server.IoUnderlyingServer;
+import io.github.cjstehno.ersatz.socket.server.jio.IoUnderlyingServer;
 import io.github.cjstehno.ersatz.socket.server.UnderlyingServer;
+import io.github.cjstehno.ersatz.socket.server.netty.NettyUnderlyingServer;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -34,7 +35,9 @@ public class ErsatzSocketServer implements Closeable {
         this.serverConfig = new ServerConfigImpl();
         serverConfig.setStarter(this::start);
 
-        this.underlyingServer = new IoUnderlyingServer(serverConfig);
+        // FIXME: means of selecting?
+        this.underlyingServer = new NettyUnderlyingServer(serverConfig);
+//        this.underlyingServer = new IoUnderlyingServer(serverConfig);
     }
 
     public ErsatzSocketServer(final Consumer<ServerConfig> consumer) {
