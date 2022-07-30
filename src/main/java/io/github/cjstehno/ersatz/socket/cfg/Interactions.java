@@ -20,6 +20,9 @@ import org.hamcrest.Matcher;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
+/**
+ * Provides an interface for the configuration of the expected interactions with the server.
+ */
 public interface Interactions {
 
     /**

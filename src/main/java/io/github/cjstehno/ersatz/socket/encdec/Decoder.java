@@ -18,6 +18,11 @@ package io.github.cjstehno.ersatz.socket.encdec;
 import java.io.IOException;
 import java.io.InputStream;
 
+/**
+ * Defines a decoder for an incoming request to the server.
+ *
+ * @param <T> the type of object being decoded
+ */
 @FunctionalInterface
 public interface Decoder<T> {
 

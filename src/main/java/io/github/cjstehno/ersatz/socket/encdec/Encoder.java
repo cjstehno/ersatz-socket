@@ -18,6 +18,9 @@ package io.github.cjstehno.ersatz.socket.encdec;
 import java.io.IOException;
 import java.io.OutputStream;
 
+/**
+ * Defines an encoder for messages being sent to the client from the server.
+ */
 @FunctionalInterface
 public interface Encoder {
 

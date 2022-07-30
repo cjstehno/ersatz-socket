@@ -18,13 +18,16 @@ package io.github.cjstehno.ersatz.socket;
 import io.github.cjstehno.ersatz.socket.cfg.Interactions;
 import io.github.cjstehno.ersatz.socket.cfg.ServerConfig;
 import io.github.cjstehno.ersatz.socket.impl.ServerConfigImpl;
-import io.github.cjstehno.ersatz.socket.server.IoUnderlyingServer;
+import io.github.cjstehno.ersatz.socket.server.jio.IoUnderlyingServer;
 import io.github.cjstehno.ersatz.socket.server.UnderlyingServer;
 
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.function.Consumer;
 
+/**
+ * The entry point for using the socket server testing framework.
+ */
 public class ErsatzSocketServer implements Closeable {
 
     private final UnderlyingServer underlyingServer;

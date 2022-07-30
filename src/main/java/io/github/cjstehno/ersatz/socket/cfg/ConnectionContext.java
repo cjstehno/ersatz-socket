@@ -17,6 +17,11 @@ package io.github.cjstehno.ersatz.socket.cfg;
 
 public interface ConnectionContext {
 
+    /**
+     * Sends the specified message to the client.
+     *
+     * @param message the message to be sent
+     */
     // FIXME: handle errors
     void send(final Object message);
 }

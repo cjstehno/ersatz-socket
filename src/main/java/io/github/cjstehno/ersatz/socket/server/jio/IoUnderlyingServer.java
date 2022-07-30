@@ -13,9 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.cjstehno.ersatz.socket.server;
+package io.github.cjstehno.ersatz.socket.server.jio;
 
 import io.github.cjstehno.ersatz.socket.impl.ServerConfigImpl;
+import io.github.cjstehno.ersatz.socket.server.UnderlyingServer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
@@ -29,6 +30,10 @@ import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
+/**
+ * An <code>UnderlyingServer</code> implementation based on the Java IO Socket framework.
+ * This is a simple implementation, but should be good enough for most testing use cases.
+ */
 @RequiredArgsConstructor @Slf4j
 public class IoUnderlyingServer implements UnderlyingServer {
 

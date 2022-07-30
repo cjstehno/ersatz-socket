@@ -15,6 +15,9 @@
  */
 package io.github.cjstehno.ersatz.socket.server;
 
+/**
+ * Defines an internal server implementation for the testing framework.
+ */
 public interface UnderlyingServer {
 
     /**

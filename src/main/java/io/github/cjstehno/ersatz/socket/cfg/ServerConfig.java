@@ -1,12 +1,12 @@
 /**
  * Copyright (C) 2022 Christopher J. Stehno
- *
+ * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
- *         http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -20,10 +20,12 @@ import io.github.cjstehno.ersatz.socket.encdec.Encoder;
 
 import java.util.function.Consumer;
 
+/**
+ * Server configuration interface.
+ */
 public interface ServerConfig {
 
     // FIXME: ssl?
-    // FIXME: helper decoder for decoding multiple messages based on an "envelope"
 
     /**
      * Configures the server port to be used. Generally, you should not set this unless you really need to (and know
@@ -56,7 +58,11 @@ public interface ServerConfig {
     ServerConfig autoStart(boolean enabled);
 
     /**
-     * ... only one (but may be configured ad-hoc)
+     * A server is configured with a single encoder, which may internally handle different message types. The
+     * <code>encoder(Class,Encoder)</code> method may be used to simplify this use case by directly configuring the
+     * sub-encoders by message type.
+     * <p>
+     * When this method is called, it will overwrite any existing configured encoder.
      *
      * @param encoder the encoder
      * @return a reference to this config
@@ -69,18 +75,17 @@ public interface ServerConfig {
      * <p>
      * This is a helper method for configuration of a standard usage pattern.
      *
-     * @param messageType
-     * @param encoder
-     * @return
+     * @param messageType the message type to be handled by the encoder
+     * @param encoder     the encoder for the message type
+     * @return a reference to this config
      */
     ServerConfig encoder(final Class<?> messageType, final Encoder encoder);
 
     /**
-     * ... only one
+     * A server is configured with only a single decoder, which may internally handle different message types.
      *
-     * @param messageType the request message type
-     * @param decoder     the decoder
-     * @param <T>         the message type
+     * @param decoder the decoder
+     * @param <T>     the message type
      * @return a reference to this config
      */
     <T> ServerConfig decoder(final Decoder<T> decoder);

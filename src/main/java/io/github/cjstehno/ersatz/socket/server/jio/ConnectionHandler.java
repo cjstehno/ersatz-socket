@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.cjstehno.ersatz.socket.server;
+package io.github.cjstehno.ersatz.socket.server.jio;
 
 import io.github.cjstehno.ersatz.socket.impl.ServerConfigImpl;
 import lombok.RequiredArgsConstructor;
