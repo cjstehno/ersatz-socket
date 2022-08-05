@@ -48,7 +48,7 @@ public class ServerConfigImpl implements ServerConfig {
         this.starter = starter;
     }
 
-    @Override public ServerConfig underlyingServer(final Class<? extends UnderlyingServer> serverClass) {
+    @Override public ServerConfig server(final Class<? extends UnderlyingServer> serverClass) {
         this.serverClass = serverClass;
         return this;
     }

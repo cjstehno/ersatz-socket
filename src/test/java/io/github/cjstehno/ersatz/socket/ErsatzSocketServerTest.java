@@ -16,7 +16,6 @@
 package io.github.cjstehno.ersatz.socket;
 
 import io.github.cjstehno.ersatz.socket.junit.ErsatzSocketServerExtension;
-import io.github.cjstehno.ersatz.socket.server.jio.IoUnderlyingServer;
 import io.github.cjstehno.ersatz.socket.server.mina.MinaUnderlyingServer;
 import lombok.val;
 import org.junit.jupiter.api.Test;
@@ -54,7 +53,7 @@ class ErsatzSocketServerTest {
 
         // TODO: make parallel set of tests with both implementations
 //        cfg.underlyingServer(IoUnderlyingServer.class);
-        cfg.underlyingServer(MinaUnderlyingServer.class);
+        cfg.server(MinaUnderlyingServer.class);
 
         cfg.encoder(Integer.class, (message, stream) -> {
             val out = new DataOutputStream(stream);
@@ -76,7 +75,7 @@ class ErsatzSocketServerTest {
         });
     });
 
-    @Test void usage() throws IOException {
+    @Test void usageAlpha() throws IOException {
         server.interactions(ix -> {
             ix.onConnect(ctx -> {
                 ctx.send(3);
@@ -88,6 +87,27 @@ class ErsatzSocketServerTest {
         });
 
         val client = new AlphaClient(server.getPort());
+        client.connect();
+
+        val responses = client.getResponses();
+        assertEquals(3, responses.size());
+        assertTrue(responses.containsAll(Set.of(
+            "Message-0-modified", "Message-1-modified", "Message-2-modified"
+        )));
+    }
+
+    @Test void usageBravo() throws Exception {
+        server.interactions(ix -> {
+            ix.onConnect(ctx -> {
+                ctx.send(3);
+            });
+
+            ix.onMessage(startsWith("Message-"), (ctx, message) -> {
+                ctx.send(message + "-modified");
+            });
+        });
+
+        val client = new BravoClient(server.getPort());
         client.connect();
 
         val responses = client.getResponses();

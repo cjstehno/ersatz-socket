@@ -1,12 +1,12 @@
 /**
  * Copyright (C) 2022 Christopher J. Stehno
- *
+ * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
- *         http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -15,6 +15,7 @@
  */
 package io.github.cjstehno.ersatz.socket.server.mina;
 
+import io.github.cjstehno.ersatz.socket.ErsatzSocketServer;
 import io.github.cjstehno.ersatz.socket.impl.ServerConfigImpl;
 import io.github.cjstehno.ersatz.socket.server.UnderlyingServer;
 import lombok.RequiredArgsConstructor;
@@ -23,9 +24,15 @@ import lombok.val;
 import org.apache.mina.core.session.IdleStatus;
 import org.apache.mina.filter.codec.ProtocolCodecFilter;
 import org.apache.mina.filter.logging.LoggingFilter;
+import org.apache.mina.filter.ssl.SslFilter;
 import org.apache.mina.transport.socket.nio.NioSocketAcceptor;
 
+import javax.net.ssl.KeyManagerFactory;
+import javax.net.ssl.SSLContext;
+import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.security.GeneralSecurityException;
+import java.security.KeyStore;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -54,9 +61,15 @@ public class MinaUnderlyingServer implements UnderlyingServer {
                 log.debug("Starting server thread...");
 
                 try {
-                    val acceptor = new NioSocketAcceptor(/* TODO: configure? */);
+                    val acceptor = new NioSocketAcceptor(1 /* TODO: ok? */);
 
                     val filterChain = acceptor.getFilterChain();
+
+                    // FIXME: enabled if ssl enabled
+//                    val sslFilter = new SslFilter(sslContext());
+//                    sslFilter.setWantClientAuth(true);
+//                    filterChain.addFirst("ssl", sslFilter);
+
                     filterChain.addLast("logger", new LoggingFilter(MinaUnderlyingServer.class));
                     filterChain.addLast("codec", new ProtocolCodecFilter(
                         new ErsatzProtocolEncoder(serverConfig),
@@ -124,5 +137,34 @@ public class MinaUnderlyingServer implements UnderlyingServer {
 
     @Override public int getActualPort() {
         return actualPort.get();
+    }
+
+    private SSLContext sslContext() {
+        try {
+            val keyStore = KeyStore.getInstance("JKS");
+
+            // FIXME: add config
+//            final var location = serverConfig.getKeystoreLocation() != null
+//                ? serverConfig.getKeystoreLocation()
+//                : ErsatzServer.class.getResource("/ersatz.keystore");
+
+            val location = ErsatzSocketServer.class.getResource("/ersatz.keystore");
+            val keystorePass = "ersatz".toCharArray(); // FIXME: config
+
+            try (val instr = location.openStream()) {
+                keyStore.load(instr, keystorePass);
+            }
+
+            val keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
+            keyManagerFactory.init(keyStore, keystorePass);
+
+            val sslContext = SSLContext.getInstance("TLS");
+            sslContext.init(keyManagerFactory.getKeyManagers(), null, null);
+
+            return sslContext;
+
+        } catch (IOException | GeneralSecurityException ex) {
+            throw new IllegalStateException(ex);
+        }
     }
 }

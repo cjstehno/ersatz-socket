@@ -27,6 +27,13 @@ import java.util.function.Consumer;
 public interface ServerConfig {
 
     // FIXME: ssl?
+    /*
+    ssl(enabled, keystore -> {
+        keystore.location(..)
+        keystore.password(...)
+    }) - keystore optional - defaults if not provided
+    ssl() enabled with defaults
+     */
 
     /**
      * Configures the underlying socket server used to perform the test interactions. By default the
@@ -41,7 +48,8 @@ public interface ServerConfig {
      * @param serverClass the server implementation of the UnderlyingServer interface
      * @return a reference to this config
      */
-    ServerConfig underlyingServer(Class<? extends UnderlyingServer> serverClass);
+    // FIXME: rename? server
+    ServerConfig server(Class<? extends UnderlyingServer> serverClass);
 
     /**
      * Configures the server port to be used. Generally, you should not set this unless you really need to (and know
