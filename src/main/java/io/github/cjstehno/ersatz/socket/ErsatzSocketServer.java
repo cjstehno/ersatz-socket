@@ -20,6 +20,7 @@ import io.github.cjstehno.ersatz.socket.cfg.ServerConfig;
 import io.github.cjstehno.ersatz.socket.impl.ServerConfigImpl;
 import io.github.cjstehno.ersatz.socket.server.jio.IoUnderlyingServer;
 import io.github.cjstehno.ersatz.socket.server.UnderlyingServer;
+import io.github.cjstehno.ersatz.socket.server.mina.MinaUnderlyingServer;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -37,7 +38,9 @@ public class ErsatzSocketServer implements Closeable {
         this.serverConfig = new ServerConfigImpl();
         serverConfig.setStarter(this::start);
 
-        this.underlyingServer = new IoUnderlyingServer(serverConfig);
+        // FIXME: need way to specify
+//        this.underlyingServer = new IoUnderlyingServer(serverConfig);
+        this.underlyingServer = new MinaUnderlyingServer(serverConfig);
     }
 
     public ErsatzSocketServer(final Consumer<ServerConfig> consumer) {

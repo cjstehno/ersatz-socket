@@ -20,6 +20,8 @@ dependencies {
     implementation 'org.slf4j:slf4j-api:1.7.36'
     implementation 'commons-io:commons-io:2.11.0'
 
+    implementation 'org.apache.mina:mina-core:2.2.1'
+
     api 'org.hamcrest:hamcrest-library:2.2'
 
     // this is required for the test extension
