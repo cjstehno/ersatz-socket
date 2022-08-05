@@ -16,6 +16,7 @@
 package io.github.cjstehno.ersatz.socket;
 
 import io.github.cjstehno.ersatz.socket.junit.ErsatzSocketServerExtension;
+import io.github.cjstehno.ersatz.socket.server.mina.MinaUnderlyingServer;
 import lombok.val;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -49,6 +50,8 @@ class ErsatzSocketServerTest {
                     out.write(bytes);
                 })
         );*/
+
+        cfg.underlyingServer(MinaUnderlyingServer.class);
 
         cfg.encoder(Integer.class, (message, stream) -> {
             val out = new DataOutputStream(stream);

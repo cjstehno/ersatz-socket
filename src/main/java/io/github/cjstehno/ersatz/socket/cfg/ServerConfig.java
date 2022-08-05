@@ -1,12 +1,12 @@
 /**
  * Copyright (C) 2022 Christopher J. Stehno
- *
+ * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
- *         http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -17,6 +17,7 @@ package io.github.cjstehno.ersatz.socket.cfg;
 
 import io.github.cjstehno.ersatz.socket.encdec.Decoder;
 import io.github.cjstehno.ersatz.socket.encdec.Encoder;
+import io.github.cjstehno.ersatz.socket.server.UnderlyingServer;
 
 import java.util.function.Consumer;
 
@@ -26,6 +27,21 @@ import java.util.function.Consumer;
 public interface ServerConfig {
 
     // FIXME: ssl?
+
+    /**
+     * Configures the underlying socket server used to perform the test interactions. By default the
+     * {@link io.github.cjstehno.ersatz.socket.server.jio.IoUnderlyingServer} implementation is used - this will also be
+     * used if there is an error while instantiating the alternate implementation.
+     *
+     * See the {@link UnderlyingServer} interface implementing classes for the available implementations.
+     *
+     * FIXME: this may go away in favor of one or the other - but for now I'll support both
+     * - even if removed, this would be a good interface to have available for user customization
+     *
+     * @param serverClass the server implementation of the UnderlyingServer interface
+     * @return a reference to this config
+     */
+    ServerConfig underlyingServer(Class<? extends UnderlyingServer> serverClass);
 
     /**
      * Configures the server port to be used. Generally, you should not set this unless you really need to (and know
