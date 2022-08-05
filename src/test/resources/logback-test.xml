@@ -6,6 +6,8 @@
         </encoder>
     </appender>
 
+    <logger name="io.github.cjstehno.ersatz.socket.ErsatzSocketServer" level="DEBUG"/>
+
     <root level="INFO">
         <appender-ref ref="STDOUT" />
     </root>

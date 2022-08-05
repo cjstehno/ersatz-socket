@@ -36,12 +36,18 @@ public class ErsatzSocketServer implements Closeable {
     // FIXME: need to pull mina into an extension project - or just make it the default?
     // - make the decision after implementing ssl in both
 
+    private final ServerConfigImpl serverConfig = new ServerConfigImpl();
     private final UnderlyingServer underlyingServer;
-    private final ServerConfigImpl serverConfig;
 
     public ErsatzSocketServer() {
-        this.serverConfig = new ServerConfigImpl();
+        this(cfg -> {});
+    }
+
+    public ErsatzSocketServer(final Consumer<ServerConfig> consumer) {
+        consumer.accept(serverConfig);
+
         serverConfig.setStarter(this::start);
+
         this.underlyingServer = instantiateServer(serverConfig);
     }
 
@@ -54,13 +60,6 @@ public class ErsatzSocketServer implements Closeable {
         } catch (Exception ex) {
             log.warn("Unable to instantiate server ({}) - using default.", serverClass);
             return new IoUnderlyingServer(config);
-        }
-    }
-
-    public ErsatzSocketServer(final Consumer<ServerConfig> consumer) {
-        this();
-        if (consumer != null) {
-            consumer.accept(serverConfig);
         }
     }
 

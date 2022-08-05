@@ -16,6 +16,7 @@
 package io.github.cjstehno.ersatz.socket;
 
 import io.github.cjstehno.ersatz.socket.junit.ErsatzSocketServerExtension;
+import io.github.cjstehno.ersatz.socket.server.jio.IoUnderlyingServer;
 import io.github.cjstehno.ersatz.socket.server.mina.MinaUnderlyingServer;
 import lombok.val;
 import org.junit.jupiter.api.Test;
@@ -51,6 +52,8 @@ class ErsatzSocketServerTest {
                 })
         );*/
 
+        // TODO: make parallel set of tests with both implementations
+//        cfg.underlyingServer(IoUnderlyingServer.class);
         cfg.underlyingServer(MinaUnderlyingServer.class);
 
         cfg.encoder(Integer.class, (message, stream) -> {
