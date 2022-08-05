@@ -1,12 +1,12 @@
 /**
  * Copyright (C) 2022 Christopher J. Stehno
- *
+ * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
- *         http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -16,148 +16,134 @@
 package io.github.cjstehno.ersatz.socket;
 
 import io.github.cjstehno.ersatz.socket.junit.ErsatzSocketServerExtension;
-import io.github.cjstehno.ersatz.socket.server.mina.MinaUnderlyingServer;
+import io.github.cjstehno.ersatz.socket.server.jio.JioUnderlyingServer;
+import lombok.extern.slf4j.Slf4j;
 import lombok.val;
+import org.hamcrest.CoreMatchers;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
-import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.startsWith;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static java.lang.Integer.parseInt;
+import static java.nio.charset.StandardCharsets.US_ASCII;
+import static org.awaitility.Awaitility.await;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.startsWith;
 
-@ExtendWith(ErsatzSocketServerExtension.class)
+@ExtendWith(ErsatzSocketServerExtension.class) @Slf4j
 class ErsatzSocketServerTest {
 
+    // FIXME: write this with ONLY mina implementation - dont write your own socket server framework!!!!
+
     private ErsatzSocketServer server = new ErsatzSocketServer(cfg -> {
-/*        cfg.encoder(
-            byMessageType()
-                .encoderFor(Integer.class, (message, stream) -> {
-                    val out = new DataOutputStream(stream);
-                    out.writeInt((int) message);
-                    out.flush();
-                })
-                .encoderFor(String.class, (message, stream) -> {
-                    val out = new DataOutputStream(stream);
-                    val bytes = ((String) message).getBytes(UTF_8);
-                    out.writeInt(bytes.length);
-                    out.write(bytes);
-                })
-        );*/
+        cfg.server(JioUnderlyingServer.class);
 
-        // TODO: make parallel set of tests with both implementations
-//        cfg.underlyingServer(IoUnderlyingServer.class);
-        cfg.server(MinaUnderlyingServer.class);
-
-        cfg.encoder(Integer.class, (message, stream) -> {
-            val out = new DataOutputStream(stream);
-            out.writeInt((int) message);
-            out.flush();
-        });
         cfg.encoder(String.class, (message, stream) -> {
-            val out = new DataOutputStream(stream);
-            val bytes = ((String) message).getBytes(UTF_8);
-            out.writeInt(bytes.length);
-            out.write(bytes);
+            stream.write(((String) message).getBytes(US_ASCII));
+            stream.flush();
         });
 
         cfg.decoder(stream -> {
-            val input = new DataInputStream(stream);
-            val length = input.readInt();
-            val bytes = input.readNBytes(length);
-            return new String(bytes, UTF_8);
+            val buffer = new StringBuilder();
+
+            int x = stream.read();
+            while (x != -1) {
+                char ch = (char) x;
+                if (ch != '\n') {
+                    buffer.append(ch);
+                    x = stream.read();
+                } else {
+                    x = stream.read();
+                    break;
+                }
+            }
+
+            return buffer.toString();
         });
     });
 
-    @Test void usageAlpha() throws IOException {
+    /*
+    On connection the server asks for 3 messages.
+    When the client receives the connection message it sends the 3 messages
+    When the server receives the 3 messages it replies and the client reads them.
+    */
+    @Test void usageJioClient() throws Exception {
         server.interactions(ix -> {
-            ix.onConnect(ctx -> {
-                ctx.send(3);
-            });
+            ix.onConnect(ctx -> ctx.send("send: 3\n"));
 
-            ix.onMessage(startsWith("Message-"), (ctx, message) -> {
-                ctx.send(message + "-modified");
+            ix.onMessage(CoreMatchers.startsWith("message:"), (ctx, message) -> {
+                ctx.send("reply: " + message.substring(message.indexOf(':') + 1) + "\n");
             });
         });
 
+        val replyCount = new AtomicInteger(0);
         val client = new AlphaClient(server.getPort());
+
+        // when I get the "send" message -> send that number of messages
+        client.onMessage(message -> {
+            switch (message.getPrefix()) {
+                case "send" -> {
+                    for (int i = 0; i < parseInt(message.getValue()); i++) {
+                        client.send(new BravoClient.BravoMessage("message", "value-" + i));
+                    }
+                }
+                case "reply" -> {
+                    log.info("Client-Received-Reply: {}", message);
+                    replyCount.incrementAndGet();
+                }
+                default -> {
+                    throw new IllegalArgumentException("Unknown message: " + message);
+                }
+            }
+        });
+
         client.connect();
 
-        val responses = client.getResponses();
-        assertEquals(3, responses.size());
-        assertTrue(responses.containsAll(Set.of(
-            "Message-0-modified", "Message-1-modified", "Message-2-modified"
-        )));
+        await().untilAtomic(replyCount, equalTo(3));
+
+        client.disconnect();
     }
 
-    @Test void usageBravo() throws Exception {
+    /*
+    On connection the server asks for 3 messages.
+    When the client receives the connection message it sends the 3 messages
+    When the server receives the 3 messages it replies and the client reads them.
+ */
+    @Test void usageMinaClient() throws Exception {
         server.interactions(ix -> {
-            ix.onConnect(ctx -> {
-                ctx.send(3);
-            });
+            ix.onConnect(ctx -> ctx.send("send: 3\n"));
 
-            ix.onMessage(startsWith("Message-"), (ctx, message) -> {
-                ctx.send(message + "-modified");
+            ix.onMessage(startsWith("message:"), (ctx, message) -> {
+                ctx.send("reply: " + message.substring(message.indexOf(':') + 1) + "\n");
             });
         });
 
+        val replyCount = new AtomicInteger(0);
         val client = new BravoClient(server.getPort());
-        client.connect();
 
-        val responses = client.getResponses();
-        assertEquals(3, responses.size());
-        assertTrue(responses.containsAll(Set.of(
-            "Message-0-modified", "Message-1-modified", "Message-2-modified"
-        )));
-    }
-
-    @Test void usageWithMultipleBlocks() throws IOException {
-        server.interactions(ix -> {
-            ix.onConnect(ctx -> {
-                ctx.send(2);
-            });
-
-            ix.onMessage(equalTo("Message-0"), (ctx, message) -> {
-                ctx.send("response-0");
-            });
-
-            ix.onMessage(equalTo("Message-1"), (ctx, message) -> {
-                ctx.send("response-1");
-            });
+        // when I get the "send" message -> send that number of messages
+        client.onMessage(message -> {
+            switch (message.getPrefix()) {
+                case "send" -> {
+                    for (int i = 0; i < parseInt(message.getValue()); i++) {
+                        client.send(new BravoClient.BravoMessage("message", "value-" + i));
+                    }
+                }
+                case "reply" -> {
+                    log.info("Client-Received-Reply: {}", message);
+                    replyCount.incrementAndGet();
+                }
+                default -> {
+                    throw new IllegalArgumentException("Unknown message: " + message);
+                }
+            }
         });
 
-        val client = new AlphaClient(server.getPort());
         client.connect();
 
-        val responses = client.getResponses();
-        assertEquals(2, responses.size());
-        assertTrue(responses.containsAll(Set.of("response-0", "response-1")));
-    }
+        await().untilAtomic(replyCount, equalTo(3));
 
-    @Test void usageWithMore() throws IOException {
-        server.interactions(ix -> {
-            ix.onConnect(ctx -> {
-                ctx.send(5);
-            });
-
-            ix.onMessage(startsWith("Message-"), (ctx, message) -> {
-                ctx.send(message + "-modified");
-            });
-        });
-
-        val client = new AlphaClient(server.getPort());
-        client.connect();
-
-        val responses = client.getResponses();
-        assertEquals(5, responses.size());
-        assertTrue(responses.containsAll(Set.of(
-            "Message-0-modified", "Message-1-modified", "Message-2-modified", "Message-3-modified", "Message-4-modified"
-        )));
+        client.disconnect();
     }
 }

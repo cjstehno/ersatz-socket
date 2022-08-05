@@ -24,7 +24,6 @@ import lombok.val;
 import org.apache.mina.core.session.IdleStatus;
 import org.apache.mina.filter.codec.ProtocolCodecFilter;
 import org.apache.mina.filter.logging.LoggingFilter;
-import org.apache.mina.filter.ssl.SslFilter;
 import org.apache.mina.transport.socket.nio.NioSocketAcceptor;
 
 import javax.net.ssl.KeyManagerFactory;
@@ -53,7 +52,7 @@ public class MinaUnderlyingServer implements UnderlyingServer {
         if (!running.get()) {
             log.debug("Starting...");
 
-            startThreadPool();
+            executor = Executors.newSingleThreadExecutor();
 
             val latch = new CountDownLatch(1);
 
@@ -61,7 +60,9 @@ public class MinaUnderlyingServer implements UnderlyingServer {
                 log.debug("Starting server thread...");
 
                 try {
-                    val acceptor = new NioSocketAcceptor(1 /* TODO: ok? */);
+                    val acceptor = new NioSocketAcceptor(
+                        serverConfig.getWorkerThreads() > 0 ? serverConfig.getWorkerThreads() : 1
+                    );
 
                     val filterChain = acceptor.getFilterChain();
 
@@ -103,18 +104,6 @@ public class MinaUnderlyingServer implements UnderlyingServer {
             } catch (InterruptedException e) {
                 log.warn("Problem waiting for server to start: {}", e.getMessage(), e);
             }
-        }
-    }
-
-    private void startThreadPool() {
-        // FIXME: is this still useful and/or correct?
-        if (serverConfig.getWorkerThreads() > 0) {
-            val actualWorkers = serverConfig.getWorkerThreads() + 1;
-            executor = Executors.newFixedThreadPool(actualWorkers);
-            log.info("Started thread pool with {} workers...", actualWorkers);
-        } else {
-            executor = Executors.newCachedThreadPool();
-            log.info("Started thread pool with cached workers...");
         }
     }
 

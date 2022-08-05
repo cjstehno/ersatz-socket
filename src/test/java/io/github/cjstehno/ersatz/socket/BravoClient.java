@@ -42,7 +42,6 @@ public class BravoClient {
         val filterChain = connector.getFilterChain();
         // FIXME: add ssl filter
         filterChain.addLast("codec", new ProtocolCodecFilter(new TextLineCodecFactory(US_ASCII)));
-//        filterChain.addLast("logger", new LoggingFilter(BravoClient.class));
 
         connector.setHandler(new IoHandlerAdapter() {
             @Override public void sessionOpened(IoSession session) throws Exception {
@@ -105,7 +104,7 @@ public class BravoClient {
         onMessageListeners.forEach(li -> li.accept(message));
     }
 
-    @Value
+    @Value // FIXME; pull out for generic usage
     public static class BravoMessage {
         String prefix;
         String value;

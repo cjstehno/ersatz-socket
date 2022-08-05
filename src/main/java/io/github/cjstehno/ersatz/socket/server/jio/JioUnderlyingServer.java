@@ -35,7 +35,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * This is a simple implementation, but should be good enough for most testing use cases.
  */
 @RequiredArgsConstructor @Slf4j
-public class IoUnderlyingServer implements UnderlyingServer {
+public class JioUnderlyingServer implements UnderlyingServer {
 
     private final ServerConfigImpl serverConfig;
     private final AtomicBoolean running = new AtomicBoolean(false);

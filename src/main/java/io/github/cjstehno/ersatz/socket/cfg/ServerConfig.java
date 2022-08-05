@@ -18,6 +18,7 @@ package io.github.cjstehno.ersatz.socket.cfg;
 import io.github.cjstehno.ersatz.socket.encdec.Decoder;
 import io.github.cjstehno.ersatz.socket.encdec.Encoder;
 import io.github.cjstehno.ersatz.socket.server.UnderlyingServer;
+import io.github.cjstehno.ersatz.socket.server.jio.JioUnderlyingServer;
 
 import java.util.function.Consumer;
 
@@ -37,7 +38,7 @@ public interface ServerConfig {
 
     /**
      * Configures the underlying socket server used to perform the test interactions. By default the
-     * {@link io.github.cjstehno.ersatz.socket.server.jio.IoUnderlyingServer} implementation is used - this will also be
+     * {@link JioUnderlyingServer} implementation is used - this will also be
      * used if there is an error while instantiating the alternate implementation.
      *
      * See the {@link UnderlyingServer} interface implementing classes for the available implementations.

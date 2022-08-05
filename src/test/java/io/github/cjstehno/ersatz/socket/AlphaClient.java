@@ -1,12 +1,12 @@
 /**
  * Copyright (C) 2022 Christopher J. Stehno
- *
+ * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
- *         http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -15,22 +15,24 @@
  */
 package io.github.cjstehno.ersatz.socket;
 
+import io.github.cjstehno.ersatz.socket.BravoClient.BravoMessage;
 import io.github.cjstehno.ersatz.socket.encdec.Decoder;
 import io.github.cjstehno.ersatz.socket.encdec.Encoder;
-import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 
 import java.io.BufferedInputStream;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.net.Socket;
-import java.util.Set;
-import java.util.concurrent.CopyOnWriteArraySet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.function.Consumer;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.nio.charset.StandardCharsets.US_ASCII;
 
 /**
  * gets message on connection with number
@@ -40,48 +42,83 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 @RequiredArgsConstructor @Slf4j
 public class AlphaClient {
 
-    private static final Decoder<Integer> CONNECT_MESSAGE_DECODER = stream -> {
-        val input = new DataInputStream(stream);
-        return input.readInt();
+    private static final Encoder ENCODER = (message, stream) -> {
+        stream.write(((String) message).getBytes(US_ASCII));
+        stream.flush();
     };
-    private static final Encoder MESSAGE_ENCODER = (message, stream) -> {
-        val output = new DataOutputStream(stream);
-        val bytes = ((String) message).getBytes(UTF_8);
-        output.writeInt(bytes.length);
-        output.write(bytes);
-    };
-    private static final Decoder<String> MESSAGE_DECODER = stream -> {
-        val data = new DataInputStream(stream);
-        val length = data.readInt();
-        val bytes = data.readNBytes(length);
-        return new String(bytes, UTF_8);
+    private static final Decoder<String> DECODER = stream -> {
+        val buffer = new StringBuilder();
+
+        int x = stream.read();
+        while (x != -1) {
+            char ch = (char) x;
+            if (ch != '\n') {
+                buffer.append(ch);
+                x = stream.read();
+            } else {
+                x = stream.read();
+                break;
+            }
+        }
+
+        return buffer.toString();
     };
 
+    private List<Consumer<BravoMessage>> onMessageListeners = new LinkedList<>();
     private final int port;
-    @Getter private final Set<String> responses = new CopyOnWriteArraySet<>();
+    private Socket socket;
+    private ExecutorService executor;
+    private OutputStream outputStream;
 
     public void connect() throws IOException {
-        try (val socket = new Socket("localhost", port)) {
-            log.info("Connected on port {}...", port);
+        executor = Executors.newCachedThreadPool();
 
-            val input = new BufferedInputStream(socket.getInputStream());
-            int count = CONNECT_MESSAGE_DECODER.decode(input);
+        socket = new Socket("localhost", port);
+        log.info("Connected on port {}...", port);
 
-            log.info("Received connection message - sending {} messages...", count);
-
-            val output = socket.getOutputStream();
-            for (int m = 0; m < count; m++) {
-                MESSAGE_ENCODER.encode("Message-" + m, output);
+        // start listening for incoming messages
+        executor.submit(() -> {
+            // FIXME: better
+            while(true) {
+                try {
+                    val input = socket.getInputStream();
+                    val message = BravoMessage.from(DECODER.decode(input));
+                    onMessage(message);
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
             }
+        });
+    }
 
-            // listen for responses
-            for (int m = 0; m < count; m++) {
-                val response = MESSAGE_DECODER.decode(input);
-                log.info("Response: {}", response);
-                responses.add(response);
-            }
+    public void onMessage(final Consumer<BravoMessage> consumer) {
+        onMessageListeners.add(consumer);
+    }
 
-            log.info("Disconnecting.");
+    public void send(final BravoMessage message) {
+        try {
+            ENCODER.encode(message.toMessage(), socket.getOutputStream());
+        } catch (IOException e) {
+            log.error("Unable to write: {}", e.getMessage(), e);
         }
+    }
+
+    public void disconnect() {
+        if (executor != null) {
+            executor.shutdownNow();
+        }
+
+        if (socket != null) {
+            try {
+                socket.close();
+            } catch (IOException e) {
+                // ignore
+            }
+        }
+        log.info("Disconnected.");
+    }
+
+    private void onMessage(final BravoMessage message) {
+        onMessageListeners.forEach(li -> li.accept(message));
     }
 }

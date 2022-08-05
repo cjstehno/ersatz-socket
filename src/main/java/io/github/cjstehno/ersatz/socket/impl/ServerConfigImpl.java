@@ -21,7 +21,7 @@ import io.github.cjstehno.ersatz.socket.encdec.Decoder;
 import io.github.cjstehno.ersatz.socket.encdec.Encoder;
 import io.github.cjstehno.ersatz.socket.encdec.MessageTypeEncoder;
 import io.github.cjstehno.ersatz.socket.server.UnderlyingServer;
-import io.github.cjstehno.ersatz.socket.server.jio.IoUnderlyingServer;
+import io.github.cjstehno.ersatz.socket.server.jio.JioUnderlyingServer;
 import lombok.Getter;
 
 import java.util.Optional;
@@ -38,7 +38,7 @@ public class ServerConfigImpl implements ServerConfig {
     private Encoder encoder;
     private Decoder<?> decoder;
     private Runnable starter;
-    @Getter private Class<? extends UnderlyingServer> serverClass = IoUnderlyingServer.class;
+    @Getter private Class<? extends UnderlyingServer> serverClass = JioUnderlyingServer.class;
 
     public ServerConfigImpl() {
         interactions = new InteractionsImpl(this);

@@ -19,7 +19,7 @@ import io.github.cjstehno.ersatz.socket.cfg.Interactions;
 import io.github.cjstehno.ersatz.socket.cfg.ServerConfig;
 import io.github.cjstehno.ersatz.socket.impl.ServerConfigImpl;
 import io.github.cjstehno.ersatz.socket.server.UnderlyingServer;
-import io.github.cjstehno.ersatz.socket.server.jio.IoUnderlyingServer;
+import io.github.cjstehno.ersatz.socket.server.jio.JioUnderlyingServer;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 
@@ -59,7 +59,7 @@ public class ErsatzSocketServer implements Closeable {
             return instance;
         } catch (Exception ex) {
             log.warn("Unable to instantiate server ({}) - using default.", serverClass);
-            return new IoUnderlyingServer(config);
+            return new JioUnderlyingServer(config);
         }
     }
 

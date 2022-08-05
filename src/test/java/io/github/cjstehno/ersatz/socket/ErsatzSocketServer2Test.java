@@ -72,7 +72,7 @@ class ErsatzSocketServer2Test {
         When the client receives the connection message it sends the 3 messages
         When the server receives the 3 messages it replies and the client reads them.
      */
-    @Test void usageBravo() throws Exception {
+    @Test void usageMinaClient() throws Exception {
         server.interactions(ix -> {
             ix.onConnect(ctx -> ctx.send("send: 3\n"));
 
