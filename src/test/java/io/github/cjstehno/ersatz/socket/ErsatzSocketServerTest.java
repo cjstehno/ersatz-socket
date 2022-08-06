@@ -35,6 +35,10 @@ import static org.hamcrest.CoreMatchers.startsWith;
 class ErsatzSocketServerTest {
 
     // FIXME: write this with ONLY mina implementation - dont write your own socket server framework!!!!
+    // FIXME: write two or three different "protocols" to test with along with fixtures
+    // TODO: any mina settings to expose or change defauls of
+    // TODO: how does this decision promote any refactoring of codecs?
+    // TODO: side-research - http support with an http client - could ersatz just be a special case of this?
 
     private ErsatzSocketServer server = new ErsatzSocketServer(cfg -> {
         cfg.server(JioUnderlyingServer.class);
