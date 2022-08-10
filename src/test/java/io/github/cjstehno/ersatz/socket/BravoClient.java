@@ -13,10 +13,16 @@ import org.apache.mina.core.service.IoHandlerAdapter;
 import org.apache.mina.core.session.IoSession;
 import org.apache.mina.filter.codec.ProtocolCodecFilter;
 import org.apache.mina.filter.codec.textline.TextLineCodecFactory;
-import org.apache.mina.filter.logging.LoggingFilter;
+import org.apache.mina.filter.ssl.SslFilter;
 import org.apache.mina.transport.socket.nio.NioSocketConnector;
 
+import javax.net.ssl.KeyManagerFactory;
+import javax.net.ssl.SSLContext;
+import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.net.URL;
+import java.security.GeneralSecurityException;
+import java.security.KeyStore;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
@@ -33,6 +39,9 @@ public class BravoClient {
     private List<Runnable> onConnectListeners = new LinkedList<>();
     private List<Consumer<BravoMessage>> onMessageListeners = new LinkedList<>();
     private final int port;
+    private final boolean ssl;
+    private final URL keystoreLocation;
+    private final String keystorePassword;
     private IoConnector connector;
     private IoSession session;
 
@@ -41,6 +50,7 @@ public class BravoClient {
 
         val filterChain = connector.getFilterChain();
         // FIXME: add ssl filter
+        filterChain.addFirst("ssl", new SslFilter(sslContext(keystoreLocation, keystorePassword)));
         filterChain.addLast("codec", new ProtocolCodecFilter(new TextLineCodecFactory(US_ASCII)));
 
         connector.setHandler(new IoHandlerAdapter() {
@@ -70,11 +80,11 @@ public class BravoClient {
         }
     }
 
-    public void onConnection(final Runnable op){
+    public void onConnection(final Runnable op) {
         onConnectListeners.add(op);
     }
 
-    public void onMessage(final Consumer<BravoMessage> consumer){
+    public void onMessage(final Consumer<BravoMessage> consumer) {
         onMessageListeners.add(consumer);
     }
 
@@ -114,8 +124,29 @@ public class BravoClient {
             return new BravoMessage(parts[0].trim(), parts[1].trim());
         }
 
-        String toMessage(){
+        String toMessage() {
             return prefix + ": " + value + "\n";
+        }
+    }
+
+    private SSLContext sslContext(final URL keystoreLocation, final String keystorePass) {
+        try {
+            val keyStore = KeyStore.getInstance("JKS");
+
+            try (val instr = keystoreLocation.openStream()) {
+                keyStore.load(instr, keystorePass.toCharArray());
+            }
+
+            val keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
+            keyManagerFactory.init(keyStore, keystorePass.toCharArray());
+
+            val sslContext = SSLContext.getInstance("TLS");
+            sslContext.init(keyManagerFactory.getKeyManagers(), null, null);
+
+            return sslContext;
+
+        } catch (IOException | GeneralSecurityException ex) {
+            throw new IllegalStateException(ex);
         }
     }
 }

@@ -27,14 +27,18 @@ import java.util.function.Consumer;
  */
 public interface ServerConfig {
 
-    // FIXME: ssl?
-    /*
-    ssl(enabled, keystore -> {
-        keystore.location(..)
-        keystore.password(...)
-    }) - keystore optional - defaults if not provided
-    ssl() enabled with defaults
-     */
+    // FIXME: document
+    default ServerConfig ssl(){
+        return ssl(true);
+    }
+
+    // FIXME: document
+    default ServerConfig ssl(boolean enabled){
+        return ssl(enabled, ks -> {});
+    }
+
+    // FIXME: document
+    ServerConfig ssl(boolean enabled, Consumer<KeystoreConfig> config);
 
     /**
      * Configures the underlying socket server used to perform the test interactions. By default the
@@ -49,7 +53,7 @@ public interface ServerConfig {
      * @param serverClass the server implementation of the UnderlyingServer interface
      * @return a reference to this config
      */
-    // FIXME: rename? server
+    @Deprecated // FIXME: remove and just use Mina
     ServerConfig server(Class<? extends UnderlyingServer> serverClass);
 
     /**

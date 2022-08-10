@@ -67,6 +67,10 @@ public class ErsatzSocketServer implements Closeable {
         return underlyingServer.getActualPort();
     }
 
+    public boolean isSsl(){
+        return serverConfig.isSsl();
+    }
+
     public ErsatzSocketServer interactions(final Consumer<Interactions> interactions) {
         serverConfig.interactions(interactions);
 

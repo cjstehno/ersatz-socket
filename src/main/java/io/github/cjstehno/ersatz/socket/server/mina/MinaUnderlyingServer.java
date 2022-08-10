@@ -24,6 +24,7 @@ import lombok.val;
 import org.apache.mina.core.session.IdleStatus;
 import org.apache.mina.filter.codec.ProtocolCodecFilter;
 import org.apache.mina.filter.logging.LoggingFilter;
+import org.apache.mina.filter.ssl.SslFilter;
 import org.apache.mina.transport.socket.nio.NioSocketAcceptor;
 
 import javax.net.ssl.KeyManagerFactory;
@@ -66,10 +67,11 @@ public class MinaUnderlyingServer implements UnderlyingServer {
 
                     val filterChain = acceptor.getFilterChain();
 
-                    // FIXME: enabled if ssl enabled
-//                    val sslFilter = new SslFilter(sslContext());
-//                    sslFilter.setWantClientAuth(true);
-//                    filterChain.addFirst("ssl", sslFilter);
+                    if (serverConfig.isSsl()) {
+                        val sslFilter = new SslFilter(sslContext());
+//                        sslFilter.setWantClientAuth(true);
+                        filterChain.addFirst("ssl", sslFilter);
+                    }
 
                     filterChain.addLast("logger", new LoggingFilter(MinaUnderlyingServer.class));
                     filterChain.addLast("codec", new ProtocolCodecFilter(
@@ -132,13 +134,9 @@ public class MinaUnderlyingServer implements UnderlyingServer {
         try {
             val keyStore = KeyStore.getInstance("JKS");
 
-            // FIXME: add config
-//            final var location = serverConfig.getKeystoreLocation() != null
-//                ? serverConfig.getKeystoreLocation()
-//                : ErsatzServer.class.getResource("/ersatz.keystore");
-
-            val location = ErsatzSocketServer.class.getResource("/ersatz.keystore");
-            val keystorePass = "ersatz".toCharArray(); // FIXME: config
+            val keystoreConfig = serverConfig.getKeystoreConfig();
+            val location = keystoreConfig.getLocation() != null ? keystoreConfig.getLocation() : ErsatzSocketServer.class.getResource("/ersatz.keystore");
+            val keystorePass = keystoreConfig.getPassword();
 
             try (val instr = location.openStream()) {
                 keyStore.load(instr, keystorePass);

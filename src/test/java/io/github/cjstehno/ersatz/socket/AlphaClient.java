@@ -42,6 +42,8 @@ import static java.nio.charset.StandardCharsets.US_ASCII;
 @RequiredArgsConstructor @Slf4j
 public class AlphaClient {
 
+    // FIXME: needs ssl support
+
     private static final Encoder ENCODER = (message, stream) -> {
         stream.write(((String) message).getBytes(US_ASCII));
         stream.flush();

@@ -16,6 +16,7 @@
 package io.github.cjstehno.ersatz.socket.impl;
 
 import io.github.cjstehno.ersatz.socket.cfg.Interactions;
+import io.github.cjstehno.ersatz.socket.cfg.KeystoreConfig;
 import io.github.cjstehno.ersatz.socket.cfg.ServerConfig;
 import io.github.cjstehno.ersatz.socket.encdec.Decoder;
 import io.github.cjstehno.ersatz.socket.encdec.Encoder;
@@ -39,6 +40,8 @@ public class ServerConfigImpl implements ServerConfig {
     private Decoder<?> decoder;
     private Runnable starter;
     @Getter private Class<? extends UnderlyingServer> serverClass = JioUnderlyingServer.class;
+    @Getter private boolean ssl;
+    @Getter private KeystoreConfigImpl keystoreConfig;
 
     public ServerConfigImpl() {
         interactions = new InteractionsImpl(this);
@@ -46,6 +49,13 @@ public class ServerConfigImpl implements ServerConfig {
 
     public void setStarter(final Runnable starter) {
         this.starter = starter;
+    }
+
+    @Override public ServerConfig ssl(final boolean enabled,final Consumer<KeystoreConfig> config) {
+        this.ssl = enabled;
+        keystoreConfig = new KeystoreConfigImpl();
+        config.accept(keystoreConfig);
+        return this;
     }
 
     @Override public ServerConfig server(final Class<? extends UnderlyingServer> serverClass) {

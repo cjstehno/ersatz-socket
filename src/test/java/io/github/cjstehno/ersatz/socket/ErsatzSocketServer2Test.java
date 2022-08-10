@@ -19,11 +19,9 @@ import io.github.cjstehno.ersatz.socket.junit.ErsatzSocketServerExtension;
 import io.github.cjstehno.ersatz.socket.server.mina.MinaUnderlyingServer;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
-import org.awaitility.Awaitility;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static java.lang.Integer.parseInt;
@@ -41,6 +39,7 @@ class ErsatzSocketServer2Test {
     // FIXME: test socket-server/mina-client, socker-server/socket-client
 
     private ErsatzSocketServer server = new ErsatzSocketServer(cfg -> {
+        cfg.ssl();
         cfg.server(MinaUnderlyingServer.class);
 
         cfg.encoder(String.class, (message, stream) -> {
@@ -82,7 +81,13 @@ class ErsatzSocketServer2Test {
         });
 
         val replyCount = new AtomicInteger(0);
-        val client = new BravoClient(server.getPort());
+
+        val client = new BravoClient(
+            server.getPort(),
+            server.isSsl(),
+            ErsatzSocketServer.class.getResource("/ersatz.keystore"),
+            "ersatz"
+        );
 
         // when I get the "send" message -> send that number of messages
         client.onMessage(message -> {
@@ -109,3 +114,5 @@ class ErsatzSocketServer2Test {
         client.disconnect();
     }
 }
+
+// FIXME: https://www.javafixing.com/2021/12/fixed-solvedhow-can-i-solve-received.html

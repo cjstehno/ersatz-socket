@@ -124,7 +124,7 @@ class ErsatzSocketServerTest {
         });
 
         val replyCount = new AtomicInteger(0);
-        val client = new BravoClient(server.getPort());
+        val client = new BravoClient(server.getPort(), false, null, null);
 
         // when I get the "send" message -> send that number of messages
         client.onMessage(message -> {
