@@ -17,8 +17,6 @@ package io.github.cjstehno.ersatz.socket.cfg;
 
 import io.github.cjstehno.ersatz.socket.encdec.Decoder;
 import io.github.cjstehno.ersatz.socket.encdec.Encoder;
-import io.github.cjstehno.ersatz.socket.server.UnderlyingServer;
-import io.github.cjstehno.ersatz.socket.server.jio.JioUnderlyingServer;
 
 import java.util.function.Consumer;
 
@@ -28,33 +26,22 @@ import java.util.function.Consumer;
 public interface ServerConfig {
 
     // FIXME: document
-    default ServerConfig ssl(){
+    default ServerConfig ssl() {
         return ssl(true);
     }
 
-    // FIXME: document
-    default ServerConfig ssl(boolean enabled){
-        return ssl(enabled, ks -> {});
+    default ServerConfig ssl(final Consumer<SslConfig> config) {
+        return ssl(true, config);
     }
 
     // FIXME: document
-    ServerConfig ssl(boolean enabled, Consumer<KeystoreConfig> config);
+    default ServerConfig ssl(final boolean enabled) {
+        return ssl(enabled, ks -> {
+        });
+    }
 
-    /**
-     * Configures the underlying socket server used to perform the test interactions. By default the
-     * {@link JioUnderlyingServer} implementation is used - this will also be
-     * used if there is an error while instantiating the alternate implementation.
-     *
-     * See the {@link UnderlyingServer} interface implementing classes for the available implementations.
-     *
-     * FIXME: this may go away in favor of one or the other - but for now I'll support both
-     * - even if removed, this would be a good interface to have available for user customization
-     *
-     * @param serverClass the server implementation of the UnderlyingServer interface
-     * @return a reference to this config
-     */
-    @Deprecated // FIXME: remove and just use Mina
-    ServerConfig server(Class<? extends UnderlyingServer> serverClass);
+    // FIXME: document
+    ServerConfig ssl(final boolean enabled, final Consumer<SslConfig> config);
 
     /**
      * Configures the server port to be used. Generally, you should not set this unless you really need to (and know

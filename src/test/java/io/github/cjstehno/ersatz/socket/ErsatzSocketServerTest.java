@@ -16,10 +16,8 @@
 package io.github.cjstehno.ersatz.socket;
 
 import io.github.cjstehno.ersatz.socket.junit.ErsatzSocketServerExtension;
-import io.github.cjstehno.ersatz.socket.server.jio.JioUnderlyingServer;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
-import org.hamcrest.CoreMatchers;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
@@ -34,14 +32,13 @@ import static org.hamcrest.CoreMatchers.startsWith;
 @ExtendWith(ErsatzSocketServerExtension.class) @Slf4j
 class ErsatzSocketServerTest {
 
-    // FIXME: write this with ONLY mina implementation - dont write your own socket server framework!!!!
     // FIXME: write two or three different "protocols" to test with along with fixtures
     // TODO: any mina settings to expose or change defauls of
     // TODO: how does this decision promote any refactoring of codecs?
-    // TODO: side-research - http support with an http client - could ersatz just be a special case of this?
 
     private ErsatzSocketServer server = new ErsatzSocketServer(cfg -> {
-        cfg.server(JioUnderlyingServer.class);
+        // fIXME: test with both
+        cfg.ssl();
 
         cfg.encoder(String.class, (message, stream) -> {
             stream.write(((String) message).getBytes(US_ASCII));
@@ -72,48 +69,6 @@ class ErsatzSocketServerTest {
     When the client receives the connection message it sends the 3 messages
     When the server receives the 3 messages it replies and the client reads them.
     */
-    @Test void usageJioClient() throws Exception {
-        server.interactions(ix -> {
-            ix.onConnect(ctx -> ctx.send("send: 3\n"));
-
-            ix.onMessage(CoreMatchers.startsWith("message:"), (ctx, message) -> {
-                ctx.send("reply: " + message.substring(message.indexOf(':') + 1) + "\n");
-            });
-        });
-
-        val replyCount = new AtomicInteger(0);
-        val client = new AlphaClient(server.getPort());
-
-        // when I get the "send" message -> send that number of messages
-        client.onMessage(message -> {
-            switch (message.getPrefix()) {
-                case "send" -> {
-                    for (int i = 0; i < parseInt(message.getValue()); i++) {
-                        client.send(new BravoClient.BravoMessage("message", "value-" + i));
-                    }
-                }
-                case "reply" -> {
-                    log.info("Client-Received-Reply: {}", message);
-                    replyCount.incrementAndGet();
-                }
-                default -> {
-                    throw new IllegalArgumentException("Unknown message: " + message);
-                }
-            }
-        });
-
-        client.connect();
-
-        await().untilAtomic(replyCount, equalTo(3));
-
-        client.disconnect();
-    }
-
-    /*
-    On connection the server asks for 3 messages.
-    When the client receives the connection message it sends the 3 messages
-    When the server receives the 3 messages it replies and the client reads them.
- */
     @Test void usageMinaClient() throws Exception {
         server.interactions(ix -> {
             ix.onConnect(ctx -> ctx.send("send: 3\n"));
@@ -124,14 +79,21 @@ class ErsatzSocketServerTest {
         });
 
         val replyCount = new AtomicInteger(0);
-        val client = new BravoClient(server.getPort(), false, null, null);
+
+        val client = new TestingClient(
+            server.getPort(),
+            server.isSsl(),
+            ssl -> {
+                // use the defaults - TODO: make cleaner way of doing this
+            }
+        );
 
         // when I get the "send" message -> send that number of messages
         client.onMessage(message -> {
             switch (message.getPrefix()) {
                 case "send" -> {
                     for (int i = 0; i < parseInt(message.getValue()); i++) {
-                        client.send(new BravoClient.BravoMessage("message", "value-" + i));
+                        client.send(new TestingClient.TestMessage("message", "value-" + i));
                     }
                 }
                 case "reply" -> {

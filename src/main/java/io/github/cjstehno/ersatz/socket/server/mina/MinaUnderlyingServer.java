@@ -15,8 +15,8 @@
  */
 package io.github.cjstehno.ersatz.socket.server.mina;
 
-import io.github.cjstehno.ersatz.socket.ErsatzSocketServer;
 import io.github.cjstehno.ersatz.socket.impl.ServerConfigImpl;
+import io.github.cjstehno.ersatz.socket.impl.SslConfigImpl;
 import io.github.cjstehno.ersatz.socket.server.UnderlyingServer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -24,15 +24,16 @@ import lombok.val;
 import org.apache.mina.core.session.IdleStatus;
 import org.apache.mina.filter.codec.ProtocolCodecFilter;
 import org.apache.mina.filter.logging.LoggingFilter;
+import org.apache.mina.filter.ssl.KeyStoreFactory;
+import org.apache.mina.filter.ssl.SslContextFactory;
 import org.apache.mina.filter.ssl.SslFilter;
 import org.apache.mina.transport.socket.nio.NioSocketAcceptor;
 
-import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
-import java.io.IOException;
+import java.io.File;
 import java.net.InetSocketAddress;
-import java.security.GeneralSecurityException;
-import java.security.KeyStore;
+import java.net.URISyntaxException;
+import java.net.URL;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -43,6 +44,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 @RequiredArgsConstructor @Slf4j
 public class MinaUnderlyingServer implements UnderlyingServer {
 
+    public static final String DEFAULT_KEYSTORE = "/ersatz.keystore";
+    public static final String DEFAULT_TRUSTSTORE = "/ersatz.truststore";
     private final ServerConfigImpl serverConfig;
     private final AtomicBoolean running = new AtomicBoolean(false);
     private final AtomicInteger actualPort = new AtomicInteger();
@@ -68,9 +71,7 @@ public class MinaUnderlyingServer implements UnderlyingServer {
                     val filterChain = acceptor.getFilterChain();
 
                     if (serverConfig.isSsl()) {
-                        val sslFilter = new SslFilter(sslContext());
-//                        sslFilter.setWantClientAuth(true);
-                        filterChain.addFirst("ssl", sslFilter);
+                        filterChain.addLast("ssl", new SslFilter(sslContext(serverConfig.getSslConfig())));
                     }
 
                     filterChain.addLast("logger", new LoggingFilter(MinaUnderlyingServer.class));
@@ -130,28 +131,43 @@ public class MinaUnderlyingServer implements UnderlyingServer {
         return actualPort.get();
     }
 
-    private SSLContext sslContext() {
-        try {
-            val keyStore = KeyStore.getInstance("JKS");
+    // FIXME: this is duplicated in the client - pull out
+    private static SSLContext sslContext(final SslConfigImpl sslConfig) throws Exception {
+        log.debug("Configuring SSL context...");
 
-            val keystoreConfig = serverConfig.getKeystoreConfig();
-            val location = keystoreConfig.getLocation() != null ? keystoreConfig.getLocation() : ErsatzSocketServer.class.getResource("/ersatz.keystore");
-            val keystorePass = keystoreConfig.getPassword();
+        // FIXME: allow config (document -
+        //  https://github.com/diegopacheco/java-pocs/blob/master/pocs/mina-tcp--SSL-server-fun/src/main/java/com/github/diegopacheco/java/sandbox/pocs/mina/tcp/SSLContextGenerator.java)
+        //  regenerate with better values
 
-            try (val instr = location.openStream()) {
-                keyStore.load(instr, keystorePass);
-            }
+        val keyStoreFile = location(sslConfig.getKeystoreLocation(), DEFAULT_KEYSTORE);
+        val trustStoreFile = location(sslConfig.getTruststoreLocation(), DEFAULT_TRUSTSTORE);
 
-            val keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
-            keyManagerFactory.init(keyStore, keystorePass);
+        if (keyStoreFile.exists() && trustStoreFile.exists()) {
+            val keyStoreFactory = new KeyStoreFactory();
+            keyStoreFactory.setDataFile(keyStoreFile);
+            keyStoreFactory.setPassword(sslConfig.getKeystorePassword());
 
-            val sslContext = SSLContext.getInstance("TLS");
-            sslContext.init(keyManagerFactory.getKeyManagers(), null, null);
+            val trustStoreFactory = new KeyStoreFactory();
+            trustStoreFactory.setDataFile(trustStoreFile);
+            trustStoreFactory.setPassword(sslConfig.getTruststorePassword());
 
+            val sslContextFactory = new SslContextFactory();
+            sslContextFactory.setKeyManagerFactoryKeyStore(keyStoreFactory.newInstance());
+
+            val trustStore = trustStoreFactory.newInstance();
+            sslContextFactory.setTrustManagerFactoryKeyStore(trustStore);
+            sslContextFactory.setKeyManagerFactoryKeyStorePassword(sslConfig.getKeystorePassword());
+
+            val sslContext = sslContextFactory.newInstance();
+            log.info("SSL provider: {}", sslContext.getProvider());
             return sslContext;
 
-        } catch (IOException | GeneralSecurityException ex) {
-            throw new IllegalStateException(ex);
+        } else {
+            throw new IllegalStateException("Unable to configure SSL: keystore or truststore does not exist.");
         }
+    }
+
+    private static File location(final URL url, final String fallback) throws URISyntaxException {
+        return new File((url != null ? url : MinaUnderlyingServer.class.getResource(fallback)).toURI());
     }
 }

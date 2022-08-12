@@ -19,9 +19,8 @@ import io.github.cjstehno.ersatz.socket.cfg.Interactions;
 import io.github.cjstehno.ersatz.socket.cfg.ServerConfig;
 import io.github.cjstehno.ersatz.socket.impl.ServerConfigImpl;
 import io.github.cjstehno.ersatz.socket.server.UnderlyingServer;
-import io.github.cjstehno.ersatz.socket.server.jio.JioUnderlyingServer;
+import io.github.cjstehno.ersatz.socket.server.mina.MinaUnderlyingServer;
 import lombok.extern.slf4j.Slf4j;
-import lombok.val;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -40,34 +39,21 @@ public class ErsatzSocketServer implements Closeable {
     private final UnderlyingServer underlyingServer;
 
     public ErsatzSocketServer() {
-        this(cfg -> {});
+        this(cfg -> {
+        });
     }
 
     public ErsatzSocketServer(final Consumer<ServerConfig> consumer) {
         consumer.accept(serverConfig);
-
         serverConfig.setStarter(this::start);
-
-        this.underlyingServer = instantiateServer(serverConfig);
-    }
-
-    private static UnderlyingServer instantiateServer(final ServerConfigImpl config) {
-        val serverClass = config.getServerClass();
-        try {
-            val instance = serverClass.getDeclaredConstructor(ServerConfigImpl.class).newInstance(config);
-            log.debug("Using instance of {} as the server.", serverClass);
-            return instance;
-        } catch (Exception ex) {
-            log.warn("Unable to instantiate server ({}) - using default.", serverClass);
-            return new JioUnderlyingServer(config);
-        }
+        underlyingServer = new MinaUnderlyingServer(serverConfig);
     }
 
     public int getPort() {
         return underlyingServer.getActualPort();
     }
 
-    public boolean isSsl(){
+    public boolean isSsl() {
         return serverConfig.isSsl();
     }
 
