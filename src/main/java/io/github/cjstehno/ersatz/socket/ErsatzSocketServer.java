@@ -32,31 +32,54 @@ import java.util.function.Consumer;
 @Slf4j
 public class ErsatzSocketServer implements Closeable {
 
-    // FIXME: need to pull mina into an extension project - or just make it the default?
-    // - make the decision after implementing ssl in both
-
     private final ServerConfigImpl serverConfig = new ServerConfigImpl();
     private final UnderlyingServer underlyingServer;
 
+    /**
+     * Creates a server with default configuration.
+     */
     public ErsatzSocketServer() {
         this(cfg -> {
         });
     }
 
+    /**
+     * Creates a server with the specified configuration.
+     *
+     * @param consumer the configuration
+     */
     public ErsatzSocketServer(final Consumer<ServerConfig> consumer) {
         consumer.accept(serverConfig);
         serverConfig.setStarter(this::start);
         underlyingServer = new MinaUnderlyingServer(serverConfig);
     }
 
+    /**
+     * Used to retrieve the actual server port. Generally, the server will be started with a configured port of "0" -
+     * this method will provide the port used.
+     *
+     * @return the actual server port.
+     */
     public int getPort() {
         return underlyingServer.getActualPort();
     }
 
+    /**
+     * Whether the server is running with SSL enabled.
+     *
+     * @return true if SSL is enabled.
+     */
     public boolean isSsl() {
         return serverConfig.isSsl();
     }
 
+    /**
+     * Used to configured the expected and available interactions with the server - if the server is configured to
+     * "auto-start" (default), it will be started when this method returns.
+     *
+     * @param interactions the server interactions
+     * @return a reference to this server instance
+     */
     public ErsatzSocketServer interactions(final Consumer<Interactions> interactions) {
         serverConfig.interactions(interactions);
 
@@ -67,19 +90,36 @@ public class ErsatzSocketServer implements Closeable {
         return this;
     }
 
+    /**
+     * Used to clear the configured interactions, without restarting the server.
+     */
     public void resetInteractions() {
         serverConfig.resetInteractions();
     }
 
+    /**
+     * Starts the server (if not already started). If auto-start is enabled (default) you don't need to call this if
+     * you are configuring interactions.
+     *
+     * @return a reference to this server instance
+     */
     public ErsatzSocketServer start() {
         underlyingServer.start();
         return this;
     }
 
+    /**
+     * Used to stop the server, if it is running.
+     */
     public void stop() {
         underlyingServer.stop();
     }
 
+    /**
+     * Used to support the <code>Closable</code> interface - simply calls the <code>stop()</code> method.
+     *
+     * @throws IOException if there is a problem stopping
+     */
     @Override public void close() throws IOException {
         stop();
     }

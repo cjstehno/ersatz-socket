@@ -16,14 +16,14 @@
 package io.github.cjstehno.ersatz.socket.impl;
 
 import io.github.cjstehno.ersatz.socket.cfg.Interactions;
-import io.github.cjstehno.ersatz.socket.cfg.SslConfig;
 import io.github.cjstehno.ersatz.socket.cfg.ServerConfig;
+import io.github.cjstehno.ersatz.socket.cfg.SslConfig;
+import io.github.cjstehno.ersatz.socket.encdec.CodecUnavailableException;
 import io.github.cjstehno.ersatz.socket.encdec.Decoder;
 import io.github.cjstehno.ersatz.socket.encdec.Encoder;
 import io.github.cjstehno.ersatz.socket.encdec.MessageTypeEncoder;
 import lombok.Getter;
 
-import java.util.Optional;
 import java.util.function.Consumer;
 
 import static io.github.cjstehno.ersatz.socket.encdec.MessageTypeEncoder.byMessageType;
@@ -107,12 +107,20 @@ public class ServerConfigImpl implements ServerConfig {
         return this;
     }
 
-    public Optional<Encoder> encoder() {
-        return Optional.ofNullable(encoder);
+    public Encoder encoder() {
+        if (encoder != null) {
+            return encoder;
+        } else {
+            throw new CodecUnavailableException("No encoder has been configured.");
+        }
     }
 
-    public Optional<Decoder<?>> decoder() {
-        return Optional.ofNullable(decoder);
+    public Decoder<?> decoder() {
+        if (decoder != null) {
+            return decoder;
+        } else {
+            throw new CodecUnavailableException("No decoder has been configured.");
+        }
     }
 
     public void resetInteractions() {

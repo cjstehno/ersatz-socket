@@ -24,5 +24,12 @@ import java.io.OutputStream;
 @FunctionalInterface
 public interface Encoder {
 
+    /**
+     * Encodes the the response message into the provided OutputStream.
+     *
+     * @param message the message to be encoded
+     * @param stream the output stream
+     * @throws IOException if there is a problem during encoding
+     */
     void encode(final Object message, final OutputStream stream) throws IOException;
 }

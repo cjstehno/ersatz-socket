@@ -15,23 +15,17 @@
  */
 package io.github.cjstehno.ersatz.socket.encdec;
 
-import java.io.IOException;
-import java.io.InputStream;
-
 /**
- * Defines a decoder for an incoming request to the server.
- *
- * @param <T> the type of object being decoded
+ * Runtime exception used to denote when a decoder or encoder has not been configured, but was requested.
  */
-@FunctionalInterface
-public interface Decoder<T> {
+public class CodecUnavailableException extends RuntimeException {
 
     /**
-     * Decodes the incoming request (InputStream) into the decoded object.
+     * Creates the exception with the specified message.
      *
-     * @param stream the request input stream
-     * @return the decoded object
-     * @throws IOException if there is a problem during decoding
+     * @param message the message
      */
-    T decode(final InputStream stream) throws IOException;
+    public CodecUnavailableException(final String message) {
+        super(message);
+    }
 }

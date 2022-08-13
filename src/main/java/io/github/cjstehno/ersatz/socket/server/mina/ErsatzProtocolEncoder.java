@@ -35,9 +35,8 @@ class ErsatzProtocolEncoder extends ProtocolEncoderAdapter {
     @Override
     public void encode(final IoSession session, final Object message, final ProtocolEncoderOutput out) throws Exception {
         try (val outstream = new ByteArrayOutputStream()) {
-            serverConfig.encoder().orElseThrow().encode(message, outstream);
-            val buffer = IoBuffer.wrap(outstream.toByteArray());
-            out.write(buffer);
+            serverConfig.encoder().encode(message, outstream);
+            out.write(IoBuffer.wrap(outstream.toByteArray()));
         }
     }
 }

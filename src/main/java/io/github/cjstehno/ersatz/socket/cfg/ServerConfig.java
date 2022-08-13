@@ -25,22 +25,39 @@ import java.util.function.Consumer;
  */
 public interface ServerConfig {
 
-    // FIXME: document
+    /**
+     * Configures the server to enable SSL with the default configurations.
+     *
+     * @return a reference to this config
+     */
     default ServerConfig ssl() {
         return ssl(true);
     }
 
+    /**
+     * Configures the server to enable SSL with the provided configurations.
+     *
+     * @return a reference to this config
+     */
     default ServerConfig ssl(final Consumer<SslConfig> config) {
         return ssl(true, config);
     }
 
-    // FIXME: document
+    /**
+     * Configures the server to enable or disable SSL, with the default configurations (when enabled).
+     *
+     * @return a reference to this config
+     */
     default ServerConfig ssl(final boolean enabled) {
         return ssl(enabled, ks -> {
         });
     }
 
-    // FIXME: document
+    /**
+     * Configures the server to enable or disable SSL, with the provided configurations (when enabled).
+     *
+     * @return a reference to this config
+     */
     ServerConfig ssl(final boolean enabled, final Consumer<SslConfig> config);
 
     /**

@@ -54,6 +54,9 @@ import static java.nio.charset.StandardCharsets.US_ASCII;
 @RequiredArgsConstructor @Slf4j
 public class TestingClient {
 
+    // FIXME: add support for binary protocol
+    // FIXME: test binary protocol
+
     @Getter private final Set<String> responses = new CopyOnWriteArraySet<>();
     private List<Runnable> onConnectListeners = new LinkedList<>();
     private List<Consumer<TestMessage>> onMessageListeners = new LinkedList<>();

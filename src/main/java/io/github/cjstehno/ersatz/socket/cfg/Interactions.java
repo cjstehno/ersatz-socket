@@ -32,7 +32,7 @@ public interface Interactions {
      * @param consumer the configuration consumer
      * @return a reference to this config
      */
-    Interactions onConnect(Consumer<ConnectionContext> consumer);
+    Interactions onConnect(final Consumer<ConnectionContext> consumer);
 
     // TODO: onDisconnect() ?
 
@@ -46,5 +46,5 @@ public interface Interactions {
      * @return a reference to this config
      * @param <T> the type of the message
      */
-    <T> Interactions onMessage(Matcher<T> matching, BiConsumer<ConnectionContext, T> consumer);
+    <T> Interactions onMessage(final Matcher<T> matching, final BiConsumer<ConnectionContext, T> consumer);
 }
