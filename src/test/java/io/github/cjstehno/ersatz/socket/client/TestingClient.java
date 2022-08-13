@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.github.cjstehno.ersatz.socket;
+package io.github.cjstehno.ersatz.socket.client;
 
 import io.github.cjstehno.ersatz.socket.cfg.SslConfig;
 import io.github.cjstehno.ersatz.socket.impl.SslConfigImpl;
@@ -24,8 +24,6 @@ import lombok.Value;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.apache.mina.core.future.ConnectFuture;
-import org.apache.mina.core.future.IoFuture;
-import org.apache.mina.core.future.IoFutureListener;
 import org.apache.mina.core.service.IoConnector;
 import org.apache.mina.core.service.IoHandlerAdapter;
 import org.apache.mina.core.session.IoSession;
@@ -51,6 +49,11 @@ import static io.github.cjstehno.ersatz.socket.server.mina.MinaUnderlyingServer.
 import static io.github.cjstehno.ersatz.socket.server.mina.MinaUnderlyingServer.DEFAULT_TRUSTSTORE;
 import static java.nio.charset.StandardCharsets.US_ASCII;
 
+/**
+ * FIXME: document
+ * a simple/configurable client for testing various scenarios...
+ *
+ */
 @RequiredArgsConstructor @Slf4j
 public class TestingClient {
 

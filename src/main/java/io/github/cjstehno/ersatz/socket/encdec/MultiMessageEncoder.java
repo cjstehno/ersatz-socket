@@ -15,29 +15,29 @@
  */
 package io.github.cjstehno.ersatz.socket.encdec;
 
-import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
 
 /**
  * An <code>Encoder</code> that allows for simple configuration of specific encoders based on the message type.
  */
-@NoArgsConstructor(access = AccessLevel.PRIVATE)
-public class MessageTypeEncoder implements Encoder {
-    // TODO: rename?
+@NoArgsConstructor(staticName = "byMessageType")
+public class MultiMessageEncoder implements Encoder {
 
     private final Map<Class<?>, Encoder> encoders = new HashMap<>();
 
-    public static MessageTypeEncoder byMessageType() {
-        return new MessageTypeEncoder();
-    }
-
-    public MessageTypeEncoder encoderFor(final Class<?> messageType, final Encoder encoder) {
+    /**
+     * Registers an encoder for a specific message type.
+     *
+     * @param messageType the message type to map the encoder
+     * @param encoder     the mapped encoder
+     * @return a reference to the multi-message encoder (for additional configuration)
+     */
+    public MultiMessageEncoder encoderFor(final Class<?> messageType, final Encoder encoder) {
         encoders.put(messageType, encoder);
         return this;
     }
@@ -48,17 +48,17 @@ public class MessageTypeEncoder implements Encoder {
      *
      * @param message the message to be encoded
      * @param stream  the output stream where the message will be written
-     * @throws IOException if there is a problem encoding the message
+     * @throws IOException               if there is a problem encoding the message
+     * @throws CodecUnavailableException if the message-type encoder is not found
      */
     @Override public void encode(final Object message, final OutputStream stream) throws IOException {
-        // TODO: better exception?
-        findEncoder(message.getClass()).orElseThrow().encode(message, stream);
-    }
-
-    private Optional<Encoder> findEncoder(final Class<?> messageType) {
-        return encoders.entrySet().stream()
-            .filter(ent -> messageType.isAssignableFrom(ent.getKey()))
+        encoders.entrySet().stream()
+            .filter(ent -> message.getClass().isAssignableFrom(ent.getKey()))
             .map(Map.Entry::getValue)
-            .findAny();
+            .findAny()
+            .orElseThrow(() -> new CodecUnavailableException(
+                "No encoder exists for message type (" + message.getClass().getSimpleName() + ")."
+            ))
+            .encode(message, stream);
     }
 }

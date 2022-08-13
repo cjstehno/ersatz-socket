@@ -21,12 +21,10 @@ import io.github.cjstehno.ersatz.socket.cfg.SslConfig;
 import io.github.cjstehno.ersatz.socket.encdec.CodecUnavailableException;
 import io.github.cjstehno.ersatz.socket.encdec.Decoder;
 import io.github.cjstehno.ersatz.socket.encdec.Encoder;
-import io.github.cjstehno.ersatz.socket.encdec.MessageTypeEncoder;
+import io.github.cjstehno.ersatz.socket.encdec.MultiMessageEncoder;
 import lombok.Getter;
 
 import java.util.function.Consumer;
-
-import static io.github.cjstehno.ersatz.socket.encdec.MessageTypeEncoder.byMessageType;
 
 public class ServerConfigImpl implements ServerConfig {
 
@@ -78,11 +76,11 @@ public class ServerConfigImpl implements ServerConfig {
     @Override public ServerConfig encoder(final Class<?> messageType, final Encoder encoder) {
         if (this.encoder == null) {
             // there is no encoder so assume this is what they want
-            this.encoder = byMessageType().encoderFor(messageType, encoder);
+            this.encoder = MultiMessageEncoder.byMessageType().encoderFor(messageType, encoder);
 
-        } else if (this.encoder instanceof MessageTypeEncoder) {
+        } else if (this.encoder instanceof MultiMessageEncoder) {
             // we just add the new type encoder
-            ((MessageTypeEncoder) this.encoder).encoderFor(messageType, encoder);
+            ((MultiMessageEncoder) this.encoder).encoderFor(messageType, encoder);
 
         } else {
             throw new IllegalArgumentException(

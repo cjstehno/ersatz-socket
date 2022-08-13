@@ -15,6 +15,7 @@
  */
 package io.github.cjstehno.ersatz.socket;
 
+import io.github.cjstehno.ersatz.socket.client.TestingClient;
 import io.github.cjstehno.ersatz.socket.junit.ErsatzSocketServerExtension;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
