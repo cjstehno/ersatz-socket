@@ -1,26 +1,12 @@
-/**
- * Copyright (C) 2022 Christopher J. Stehno
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *         http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package io.github.cjstehno.ersatz.socket.client;
 
-import io.github.cjstehno.ersatz.socket.cfg.SslConfig;
+import io.github.cjstehno.ersatz.socket.client.cfg.ClientConfig;
+import io.github.cjstehno.ersatz.socket.client.cfg.ClientConfigImpl;
+import io.github.cjstehno.ersatz.socket.client.cfg.Sender;
+import io.github.cjstehno.ersatz.socket.client.codec.ClientProtocolDecoder;
+import io.github.cjstehno.ersatz.socket.client.codec.ClientProtocolEncoder;
 import io.github.cjstehno.ersatz.socket.impl.SslConfigImpl;
 import io.github.cjstehno.ersatz.socket.server.mina.MinaUnderlyingServer;
-import lombok.Getter;
-import lombok.RequiredArgsConstructor;
-import lombok.Value;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.apache.mina.core.future.ConnectFuture;
@@ -28,7 +14,6 @@ import org.apache.mina.core.service.IoConnector;
 import org.apache.mina.core.service.IoHandlerAdapter;
 import org.apache.mina.core.session.IoSession;
 import org.apache.mina.filter.codec.ProtocolCodecFilter;
-import org.apache.mina.filter.codec.textline.TextLineCodecFactory;
 import org.apache.mina.filter.ssl.KeyStoreFactory;
 import org.apache.mina.filter.ssl.SslContextFactory;
 import org.apache.mina.filter.ssl.SslFilter;
@@ -41,65 +26,67 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Set;
-import java.util.concurrent.CopyOnWriteArraySet;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 import static io.github.cjstehno.ersatz.socket.server.mina.MinaUnderlyingServer.DEFAULT_KEYSTORE;
 import static io.github.cjstehno.ersatz.socket.server.mina.MinaUnderlyingServer.DEFAULT_TRUSTSTORE;
-import static java.nio.charset.StandardCharsets.US_ASCII;
 
-/**
- * FIXME: document
- * a simple/configurable client for testing various scenarios...
- *
- */
-@RequiredArgsConstructor @Slf4j
-public class TestingClient {
+// FIXME: document
+@Slf4j
+public class ErsatzSocketClient implements Sender {
 
-    // FIXME: add support for binary protocol
-    // FIXME: test binary protocol
+    // FIXME: consider a junit extension for helping with these
 
-    @Getter private final Set<String> responses = new CopyOnWriteArraySet<>();
-    private List<Runnable> onConnectListeners = new LinkedList<>();
-    private List<Consumer<TestMessage>> onMessageListeners = new LinkedList<>();
-    private final SslConfigImpl sslConfig = new SslConfigImpl();
-    private final int port;
-    private final boolean ssl;
-    private final Consumer<SslConfig> sslConfigurator;
+    private final ClientConfigImpl clientConfig = new ClientConfigImpl();
+    private final List<Consumer<Sender>> connectionListeners = new LinkedList<>();
+    private final List<BiConsumer<Sender, ? extends Object>> messageListeners = new LinkedList<>();
     private IoConnector connector;
     private IoSession session;
 
-    public void connect() throws Exception {
-        connector = new NioSocketConnector();
+    public ErsatzSocketClient() {
+        this(cfg -> {
+        });
+    }
+
+    public ErsatzSocketClient(final Consumer<ClientConfig> config) {
+        config.accept(clientConfig);
+    }
+
+    public ErsatzSocketClient connect() throws Exception {
+        connector = new NioSocketConnector(2 /* TODO: ok? default is procs+1 */);
 
         val filterChain = connector.getFilterChain();
 
-        if (ssl) {
-            // apply the ssl config and add the filter
-            sslConfigurator.accept(sslConfig);
-            filterChain.addLast("ssl", new SslFilter(sslContext(sslConfig)));
+        // FIXME: logging filter? configurable?
+
+        if (clientConfig.isSsl()) {
+            filterChain.addLast("ssl", new SslFilter(sslContext(clientConfig.getSslConfig())));
         }
 
-        // TODO: logging?
-        filterChain.addLast("codec", new ProtocolCodecFilter(new TextLineCodecFactory(US_ASCII)));
+        filterChain.addLast("codec", new ProtocolCodecFilter(
+            new ClientProtocolEncoder(clientConfig),
+            new ClientProtocolDecoder(clientConfig)
+        ));
 
+        val sender = (Sender) this;
         connector.setHandler(new IoHandlerAdapter() {
             @Override public void sessionOpened(IoSession session) throws Exception {
-                log.info("Client-Connected on port {}...", port);
-                onConnection();
+                log.info("Client-Connected on port {}...", clientConfig.getPort());
+                connectionListeners.forEach(li -> li.accept(sender));
             }
 
             @Override public void messageReceived(final IoSession session, final Object message) throws Exception {
                 log.info("Client-Received: {}", message);
-                onMessage(TestMessage.from((String) message));
+                val msg = message.getClass().cast(message);
+                messageListeners.forEach(li -> li.accept(sender, msg));
             }
         });
 
-        // FIXME: timeout after N tries
+        // FIXME: timeout after N tries (or time) - handle this better
         for (; ; ) {
             try {
-                ConnectFuture future = connector.connect(new InetSocketAddress("localhost", port));
+                ConnectFuture future = connector.connect(new InetSocketAddress("localhost", clientConfig.getPort()));
                 future.awaitUninterruptibly();
                 session = future.getSession();
                 break;
@@ -109,18 +96,38 @@ public class TestingClient {
                 Thread.sleep(5000);
             }
         }
+
+        return this;
     }
 
-    public void onConnection(final Runnable op) {
-        onConnectListeners.add(op);
+    /**
+     * Configures operation to be performed when a connection is established with the server. If more than one operation
+     * is configured, they will be executed in the order they were added.
+     *
+     * @param consumer the configuration consumer
+     * @return a reference to this client
+     */
+    public ErsatzSocketClient onConnect(final Consumer<Sender> consumer) {
+        connectionListeners.add(consumer);
+        return this;
     }
 
-    public void onMessage(final Consumer<TestMessage> consumer) {
-        onMessageListeners.add(consumer);
+    /**
+     * FIXME: document
+     */
+    public <T> ErsatzSocketClient onMessage(final BiConsumer<Sender, T> consumer) {
+        messageListeners.add(consumer);
+        return this;
     }
 
-    public void send(final TestMessage message) {
-        session.write(message.toMessage());
+
+    // FIXME: add a means of filtering messagte handlers by matcher?
+
+    // FIXME: onDisconnect()?
+    // FIXME: onError()?
+
+    public void send(final Object message) {
+        // FIXME: imopl
     }
 
     public void disconnect() {
@@ -131,29 +138,6 @@ public class TestingClient {
         session.getCloseFuture().awaitUninterruptibly();
         connector.dispose();
         log.info("Closed.");
-    }
-
-    private void onConnection() {
-        onConnectListeners.forEach(Runnable::run);
-    }
-
-    private void onMessage(final TestMessage message) {
-        onMessageListeners.forEach(li -> li.accept(message));
-    }
-
-    @Value
-    public static class TestMessage {
-        String prefix;
-        String value;
-
-        public static TestMessage from(final String string) {
-            val parts = string.split(":");
-            return new TestMessage(parts[0].trim(), parts[1].trim());
-        }
-
-        String toMessage() {
-            return prefix + ": " + value + "\n";
-        }
     }
 
     // FIXME: this is duplicated in the client - pull out

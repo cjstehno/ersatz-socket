@@ -16,10 +16,10 @@
 package io.github.cjstehno.ersatz.socket;
 
 import io.github.cjstehno.ersatz.socket.client.ErsatzSocketClient;
-import io.github.cjstehno.ersatz.socket.client.TestingClientOld;
 import io.github.cjstehno.ersatz.socket.junit.ErsatzSocketServerExtension;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
+import org.hamcrest.CoreMatchers;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
@@ -32,14 +32,11 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.startsWith;
 
 @ExtendWith(ErsatzSocketServerExtension.class) @Slf4j
-class ErsatzSocketServerTest {
+class ErsatzSocketServerBinaryTest {
 
-    // FIXME: write two or three different "protocols" to test with along with fixtures
-    // TODO: any mina settings to expose or change defauls of
-    // TODO: how does this decision promote any refactoring of codecs?
+    // FIXME: this is a prototype for binary client support
 
     private ErsatzSocketServer server = new ErsatzSocketServer(cfg -> {
-        // fIXME: test with both
         cfg.ssl();
 
         cfg.encoder(String.class, (message, stream) -> {
@@ -66,12 +63,7 @@ class ErsatzSocketServerTest {
         });
     });
 
-    /*
-    On connection the server asks for 3 messages.
-    When the client receives the connection message it sends the 3 messages
-    When the server receives the 3 messages it replies and the client reads them.
-    */
-    @Test void usageMinaClient() throws Exception {
+    @Test void binaryClient() throws Exception {
         server.interactions(ix -> {
             ix.onConnect(ctx -> ctx.send("send: 3\n"));
 
@@ -85,24 +77,16 @@ class ErsatzSocketServerTest {
         val client = new ErsatzSocketClient(cfg -> {
             cfg.port(server.getPort());
             cfg.ssl(server.isSsl());
+//            cfg.decoder();
+//            cfg.encoder();
         });
 
-        // when I get the "send" message -> send that number of messages
-        client.onMessage(message -> {
-            switch (message.getPrefix()) {
-                case "send" -> {
-                    for (int i = 0; i < parseInt(message.getValue()); i++) {
-                        client.send(new TestingClientOld.TestMessage("message", "value-" + i));
-                    }
-                }
-                case "reply" -> {
-                    log.info("Client-Received-Reply: {}", message);
-                    replyCount.incrementAndGet();
-                }
-                default -> {
-                    throw new IllegalArgumentException("Unknown message: " + message);
-                }
-            }
+        client.onConnect(ctx -> {
+            System.out.println("connected handled");
+        });
+
+        client.onMessage((ctx, message) -> {
+            System.out.println("handling message: " + message);
         });
 
         client.connect();
