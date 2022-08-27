@@ -1,3 +1,18 @@
+/**
+ * Copyright (C) 2022 Christopher J. Stehno
+ * <p>
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package io.github.cjstehno.ersatz.socket.client;
 
 import io.github.cjstehno.ersatz.socket.client.cfg.ClientConfig;
@@ -13,6 +28,7 @@ import org.apache.mina.core.future.ConnectFuture;
 import org.apache.mina.core.service.IoConnector;
 import org.apache.mina.core.service.IoHandlerAdapter;
 import org.apache.mina.core.session.IoSession;
+import org.apache.mina.core.write.WriteToClosedSessionException;
 import org.apache.mina.filter.codec.ProtocolCodecFilter;
 import org.apache.mina.filter.ssl.KeyStoreFactory;
 import org.apache.mina.filter.ssl.SslContextFactory;
@@ -26,6 +42,8 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
@@ -34,13 +52,14 @@ import static io.github.cjstehno.ersatz.socket.server.mina.MinaUnderlyingServer.
 
 // FIXME: document
 @Slf4j
-public class ErsatzSocketClient implements Sender {
+public class ErsatzSocketClient<D> implements Sender {
 
     // FIXME: consider a junit extension for helping with these
 
     private final ClientConfigImpl clientConfig = new ClientConfigImpl();
     private final List<Consumer<Sender>> connectionListeners = new LinkedList<>();
-    private final List<BiConsumer<Sender, ? extends Object>> messageListeners = new LinkedList<>();
+    private final List<BiConsumer<Sender, D>> messageListeners = new LinkedList<>();
+    private final ExecutorService executor = Executors.newCachedThreadPool(); // TODO: refactor if kept
     private IoConnector connector;
     private IoSession session;
 
@@ -54,7 +73,7 @@ public class ErsatzSocketClient implements Sender {
     }
 
     public ErsatzSocketClient connect() throws Exception {
-        connector = new NioSocketConnector(2 /* TODO: ok? default is procs+1 */);
+        connector = new NioSocketConnector(/* TODO: ok? default is procs+1 */);
 
         val filterChain = connector.getFilterChain();
 
@@ -71,15 +90,45 @@ public class ErsatzSocketClient implements Sender {
 
         val sender = (Sender) this;
         connector.setHandler(new IoHandlerAdapter() {
-            @Override public void sessionOpened(IoSession session) throws Exception {
+            @Override
+            public void sessionOpened(IoSession session) throws Exception {
                 log.info("Client-Connected on port {}...", clientConfig.getPort());
-                connectionListeners.forEach(li -> li.accept(sender));
+
+                // FIXME: on separate thread?
+                connectionListeners.forEach(li -> {
+                    executor.submit(() -> {
+                        try {
+                            li.accept(sender);
+                        } catch (Exception ex) {
+                            ex.printStackTrace();
+                        }
+                    });
+                });
             }
 
-            @Override public void messageReceived(final IoSession session, final Object message) throws Exception {
-                log.info("Client-Received: {}", message);
-                val msg = message.getClass().cast(message);
-                messageListeners.forEach(li -> li.accept(sender, msg));
+            @Override
+            public void messageReceived(final IoSession session, final Object message) throws Exception {
+                log.info("Client-Received ({} listeners): {}", messageListeners.size(), message);
+
+                // FIXME: on separate thread?
+                messageListeners.forEach(li -> {
+                    executor.submit(() -> {
+                        try {
+                            li.accept(sender, (D) message);
+                        } catch (Exception ex) {
+                            ex.printStackTrace();
+                        }
+                    });
+                });
+            }
+
+            @Override public void exceptionCaught(final IoSession session, final Throwable cause) throws Exception {
+                if (!(cause instanceof WriteToClosedSessionException)) {
+                    // FIXME: do better
+                    cause.printStackTrace();
+                } else {
+                    log.warn("Caught-Exception: {}", cause.getMessage(), cause);
+                }
             }
         });
 
@@ -101,7 +150,8 @@ public class ErsatzSocketClient implements Sender {
     }
 
     /**
-     * Configures operation to be performed when a connection is established with the server. If more than one operation
+     * Configures operation to be performed when a connection is established with
+     * the server. If more than one operation
      * is configured, they will be executed in the order they were added.
      *
      * @param consumer the configuration consumer
@@ -115,11 +165,10 @@ public class ErsatzSocketClient implements Sender {
     /**
      * FIXME: document
      */
-    public <T> ErsatzSocketClient onMessage(final BiConsumer<Sender, T> consumer) {
+    public ErsatzSocketClient onMessage(final BiConsumer<Sender, D> consumer) {
         messageListeners.add(consumer);
         return this;
     }
-
 
     // FIXME: add a means of filtering messagte handlers by matcher?
 
@@ -127,12 +176,15 @@ public class ErsatzSocketClient implements Sender {
     // FIXME: onError()?
 
     public void send(final Object message) {
-        // FIXME: imopl
+        log.info("Sending: {}", message);
+        session.write(message);
     }
 
     public void disconnect() {
         log.info("Disconnecting...");
-        session.getCloseFuture().addListener(future -> log.info("Disconnected."));
+        session.getCloseFuture().addListener(future -> {
+            log.info("Disconnected.");
+        });
 
         session.closeNow();
         session.getCloseFuture().awaitUninterruptibly();

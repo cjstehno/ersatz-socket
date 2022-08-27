@@ -16,20 +16,21 @@
 package io.github.cjstehno.ersatz.socket;
 
 import io.github.cjstehno.ersatz.socket.client.ErsatzSocketClient;
+import io.github.cjstehno.ersatz.socket.client.TestMessage;
+import io.github.cjstehno.ersatz.socket.fixtures.BinaryCodec;
 import io.github.cjstehno.ersatz.socket.junit.ErsatzSocketServerExtension;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
-import org.hamcrest.CoreMatchers;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static io.github.cjstehno.ersatz.socket.client.TestMessage.MessageType.*;
+import static io.github.cjstehno.ersatz.socket.client.TestMessage.TypeMatcher.ofType;
 import static java.lang.Integer.parseInt;
-import static java.nio.charset.StandardCharsets.US_ASCII;
 import static org.awaitility.Awaitility.await;
 import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.startsWith;
 
 @ExtendWith(ErsatzSocketServerExtension.class) @Slf4j
 class ErsatzSocketServerBinaryTest {
@@ -39,54 +40,41 @@ class ErsatzSocketServerBinaryTest {
     private ErsatzSocketServer server = new ErsatzSocketServer(cfg -> {
         cfg.ssl();
 
-        cfg.encoder(String.class, (message, stream) -> {
-            stream.write(((String) message).getBytes(US_ASCII));
-            stream.flush();
-        });
-
-        cfg.decoder(stream -> {
-            val buffer = new StringBuilder();
-
-            int x = stream.read();
-            while (x != -1) {
-                char ch = (char) x;
-                if (ch != '\n') {
-                    buffer.append(ch);
-                    x = stream.read();
-                } else {
-                    x = stream.read();
-                    break;
-                }
-            }
-
-            return buffer.toString();
-        });
+        cfg.encoder(TestMessage.class, BinaryCodec.ENCODER);
+        cfg.decoder(BinaryCodec.DECODER);
     });
 
     @Test void binaryClient() throws Exception {
         server.interactions(ix -> {
-            ix.onConnect(ctx -> ctx.send("send: 3\n"));
+            ix.onConnect(ctx -> ctx.send(new TestMessage(SEND, "3")));
 
-            ix.onMessage(startsWith("message:"), (ctx, message) -> {
-                ctx.send("reply: " + message.substring(message.indexOf(':') + 1) + "\n");
-            });
+            ix.onMessage(ofType(MESSAGE), (ctx, message) -> ctx.send(new TestMessage(REPLY, message.getContent())));
         });
 
         val replyCount = new AtomicInteger(0);
 
-        val client = new ErsatzSocketClient(cfg -> {
+        val client = new ErsatzSocketClient<TestMessage>(cfg -> {
             cfg.port(server.getPort());
             cfg.ssl(server.isSsl());
-//            cfg.decoder();
-//            cfg.encoder();
+            cfg.decoder(BinaryCodec.DECODER);
+            cfg.encoder(BinaryCodec.ENCODER);
         });
 
-        client.onConnect(ctx -> {
-            System.out.println("connected handled");
-        });
-
-        client.onMessage((ctx, message) -> {
-            System.out.println("handling message: " + message);
+        // when I get the "send" message -> send that number of messages
+        client.onMessage((sender, message) -> {
+            switch (message.getType()) {
+                case SEND -> {
+                    log.info("Sending {} replies", message.getContent());
+                    for (int i = 0; i < parseInt(message.getContent()); i++) {
+                        sender.send(new TestMessage(MESSAGE, "value-" + i));
+                    }
+                }
+                case REPLY -> {
+                    log.info("Client-Received-Reply: {}", message);
+                    replyCount.incrementAndGet();
+                }
+                default -> throw new IllegalArgumentException("Unknown message: " + message);
+            }
         });
 
         client.connect();

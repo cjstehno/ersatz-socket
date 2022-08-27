@@ -1,12 +1,12 @@
 /**
  * Copyright (C) 2022 Christopher J. Stehno
- *
+ * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
- *         http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -16,99 +16,115 @@
 package io.github.cjstehno.ersatz.socket;
 
 import io.github.cjstehno.ersatz.socket.client.ErsatzSocketClient;
-import io.github.cjstehno.ersatz.socket.client.TestingClientOld;
-import io.github.cjstehno.ersatz.socket.junit.ErsatzSocketServerExtension;
+import io.github.cjstehno.ersatz.socket.client.TestMessage;
+import io.github.cjstehno.ersatz.socket.encdec.Decoder;
+import io.github.cjstehno.ersatz.socket.encdec.Encoder;
+import io.github.cjstehno.ersatz.socket.fixtures.BinaryCodec;
+import io.github.cjstehno.ersatz.socket.fixtures.TextCodec;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.CountDownLatch;
+import java.util.stream.Stream;
 
+import static io.github.cjstehno.ersatz.socket.client.TestMessage.MessageType.MESSAGE;
+import static io.github.cjstehno.ersatz.socket.client.TestMessage.TypeMatcher.ofType;
+import static io.github.cjstehno.ersatz.socket.client.TestMessage.*;
 import static java.lang.Integer.parseInt;
-import static java.nio.charset.StandardCharsets.US_ASCII;
-import static org.awaitility.Awaitility.await;
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.startsWith;
+import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-@ExtendWith(ErsatzSocketServerExtension.class) @Slf4j
-class ErsatzSocketServerTest {
+// TODO: any mina settings to expose or change defauls of
+// TODO: how does this decision promote any refactoring of codecs?
 
-    // FIXME: write two or three different "protocols" to test with along with fixtures
-    // TODO: any mina settings to expose or change defauls of
-    // TODO: how does this decision promote any refactoring of codecs?
+@Slf4j
+class ErsatzSocketServerTextTest {
 
-    private ErsatzSocketServer server = new ErsatzSocketServer(cfg -> {
-        // fIXME: test with both
-        cfg.ssl();
+    private ErsatzSocketServer server;
 
-        cfg.encoder(String.class, (message, stream) -> {
-            stream.write(((String) message).getBytes(US_ASCII));
-            stream.flush();
+    private void setupServer(final boolean ssl, final Decoder<TestMessage> decoder, final Encoder encoder) {
+        server = new ErsatzSocketServer(cfg -> {
+            cfg.ssl(ssl);
+
+            cfg.decoder(decoder);
+            cfg.encoder(TestMessage.class, encoder);
         });
+    }
 
-        cfg.decoder(stream -> {
-            val buffer = new StringBuilder();
+    // FIXME: pull this into a separate extension for just doing this
+    @AfterEach
+    public void afterEach() throws Exception {
+        if (server != null) {
+            server.close();
+            server.resetInteractions();
+        }
+    }
 
-            int x = stream.read();
-            while (x != -1) {
-                char ch = (char) x;
-                if (ch != '\n') {
-                    buffer.append(ch);
-                    x = stream.read();
-                } else {
-                    x = stream.read();
-                    break;
-                }
-            }
+    @ParameterizedTest(name = "{index}: general usage - {0}")
+    @MethodSource("argumentsProvider") @SuppressWarnings("unused")
+    void generalUsage(final String label, final boolean ssl, final Decoder<TestMessage> decoder, final Encoder encoder) throws Exception {
+        setupServer(ssl, decoder, encoder);
 
-            return buffer.toString();
-        });
-    });
-
-    /*
-    On connection the server asks for 3 messages.
-    When the client receives the connection message it sends the 3 messages
-    When the server receives the 3 messages it replies and the client reads them.
-    */
-    @Test void usageMinaClient() throws Exception {
         server.interactions(ix -> {
-            ix.onConnect(ctx -> ctx.send("send: 3\n"));
-
-            ix.onMessage(startsWith("message:"), (ctx, message) -> {
-                ctx.send("reply: " + message.substring(message.indexOf(':') + 1) + "\n");
-            });
+            ix.onConnect(ctx -> ctx.send(createSend("3")));
+            ix.onMessage(ofType(MESSAGE), (ctx, message) -> ctx.send(createReply(message.getContent())));
         });
 
-        val replyCount = new AtomicInteger(0);
+        val latch = new CountDownLatch(3);
 
-        val client = new ErsatzSocketClient(cfg -> {
+        val client = new ErsatzSocketClient<TestMessage>(cfg -> {
             cfg.port(server.getPort());
-            cfg.ssl(server.isSsl());
+            cfg.ssl(ssl);
+            cfg.decoder(decoder);
+            cfg.encoder(encoder);
         });
 
         // when I get the "send" message -> send that number of messages
-        client.onMessage(message -> {
-            switch (message.getPrefix()) {
-                case "send" -> {
-                    for (int i = 0; i < parseInt(message.getValue()); i++) {
-                        client.send(new TestingClientOld.TestMessage("message", "value-" + i));
+        client.onMessage((sender, message) -> {
+            switch (message.getType()) {
+                case SEND -> {
+                    try {
+                        log.info("Sending {} replies", message.getContent());
+                        for (int i = 0; i < parseInt(message.getContent()); i++) {
+                            sender.send(createMessage("value-" + i));
+                        }
+                    } catch (Exception ex) {
+                        ex.printStackTrace();
                     }
                 }
-                case "reply" -> {
-                    log.info("Client-Received-Reply: {}", message);
-                    replyCount.incrementAndGet();
+                case REPLY -> {
+                    try {
+                        log.info("Client-Received-Reply: {}", message);
+                        latch.countDown();
+                    } catch (Exception ex) {
+                        ex.printStackTrace();
+                    }
                 }
-                default -> {
-                    throw new IllegalArgumentException("Unknown message: " + message);
-                }
+                default -> throw new IllegalArgumentException("Unknown message: " + message);
             }
         });
 
         client.connect();
 
-        await().untilAtomic(replyCount, equalTo(3));
+        assertTrue(latch.await(30, SECONDS), "Timed-out before receiving expected replies.");
 
         client.disconnect();
+    }
+
+    private static Stream<Arguments> argumentsProvider() {
+        return Stream.of(
+            // text
+            // FIXME: there is some odd issue with this scenario
+            Arguments.of("text codec without ssl", false, TextCodec.DECODER, TextCodec.ENCODER)/*,
+            Arguments.of("text codec with ssl", true, TextCodec.DECODER, TextCodec.ENCODER),
+
+            // binary
+            Arguments.of("binary codec without ssl", false, BinaryCodec.DECODER, BinaryCodec.ENCODER),
+            Arguments.of("binary codec with ssl", true, BinaryCodec.DECODER, BinaryCodec.ENCODER)*/
+        );
     }
 }

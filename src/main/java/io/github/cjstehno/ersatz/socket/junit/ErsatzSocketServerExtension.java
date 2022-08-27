@@ -35,7 +35,7 @@ import static java.util.Arrays.stream;
  */
 public class ErsatzSocketServerExtension implements BeforeEachCallback, AfterEachCallback {
 
-    @Override public void beforeEach(ExtensionContext context) throws Exception {
+    @Override public void beforeEach(final ExtensionContext context) throws Exception {
         findInstance(context.getRequiredTestInstance(), true).start();
     }
 

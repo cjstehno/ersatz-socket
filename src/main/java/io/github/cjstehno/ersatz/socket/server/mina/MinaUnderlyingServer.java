@@ -65,7 +65,7 @@ public class MinaUnderlyingServer implements UnderlyingServer {
 
                 try {
                     val acceptor = new NioSocketAcceptor(
-                        serverConfig.getWorkerThreads() > 0 ? serverConfig.getWorkerThreads() : 1
+//       FIXME:                  serverConfig.getWorkerThreads() > 0 ? serverConfig.getWorkerThreads() : 1
                     );
 
                     val filterChain = acceptor.getFilterChain();
@@ -74,7 +74,9 @@ public class MinaUnderlyingServer implements UnderlyingServer {
                         filterChain.addLast("ssl", new SslFilter(sslContext(serverConfig.getSslConfig())));
                     }
 
-                    filterChain.addLast("logger", new LoggingFilter(MinaUnderlyingServer.class));
+                    // TODO: create my own logging filter
+//                    filterChain.addLast("logger", new LoggingFilter(MinaUnderlyingServer.class));
+
                     filterChain.addLast("codec", new ProtocolCodecFilter(
                         new ErsatzProtocolEncoder(serverConfig),
                         new ErsatzProtocolDecoder(serverConfig)
