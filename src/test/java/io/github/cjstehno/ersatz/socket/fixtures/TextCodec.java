@@ -15,30 +15,37 @@
  */
 package io.github.cjstehno.ersatz.socket.fixtures;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.github.cjstehno.ersatz.socket.client.TestMessage;
 import io.github.cjstehno.ersatz.socket.encdec.Decoder;
 import io.github.cjstehno.ersatz.socket.encdec.Encoder;
 import lombok.extern.slf4j.Slf4j;
-import lombok.val;
-
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
-
-import static io.github.cjstehno.ersatz.socket.client.TestMessage.MessageType.valueOf;
-import static java.nio.charset.StandardCharsets.US_ASCII;
 
 @Slf4j
 public class TextCodec {
 
-    public static Decoder<TestMessage> DECODER = stream -> {
-        try (val reader = new BufferedReader(new InputStreamReader(stream, US_ASCII))) {
-            val line = reader.readLine();
-            log.info("Decoded-Line: [{}]", line);
-            val type = valueOf(line.substring(0, line.indexOf(":")));
-            val content = line.substring(line.indexOf(":") + 1);
-            return new TestMessage(type, content);
-        }
+    // FIXME: create a simple-test codec and json-codec for testing
+
+    // FIXME: refactor this if kept
+    private static final ObjectMapper MAPPER = new ObjectMapper();
+
+    public static Decoder<TestMessage> DECODER = stream -> MAPPER.readValue(stream, TestMessage.class);
+
+    public static Encoder ENCODER = (message, stream) -> {
+        MAPPER.writeValue(stream, message);
+        stream.flush();
     };
+
+
+//    public static Decoder<TestMessage> DECODER = stream -> {
+//        try (val reader = new BufferedReader(new InputStreamReader(stream, US_ASCII))) {
+//            val line = reader.readLine();
+//            log.info("Decoded-Line: [{}]", line);
+//            val type = valueOf(line.substring(0, line.indexOf(":")));
+//            val content = line.substring(line.indexOf(":") + 1);
+//            return new TestMessage(type, content);
+//        }
+//    };
 
 //    public static Decoder<TestMessage> DECODER = stream -> {
 //        val buffer = new StringBuilder();
@@ -63,17 +70,17 @@ public class TextCodec {
 //    };
 
 
-    public static Encoder ENCODER = (message, stream) -> {
-        log.info("Encoding-Message: {}", message);
-
-        val msg = (TestMessage) message;
-//        try (val writer = new BufferedWriter(new OutputStreamWriter(stream, US_ASCII))) {
-//            writer.write(msg.getType().name() + ":" + msg.getContent() + "\n");
-//            writer.flush();
-//        }
-        val line = msg.getType().name() + ":" + msg.getContent() + "\n";
-        log.info("Encoded-Message (line): [{}]", line);
-        stream.write(line.getBytes(US_ASCII));
-//        stream.flush();
-    };
+//    public static Encoder ENCODER = (message, stream) -> {
+//        log.info("Encoding-Message: {}", message);
+//
+//        val msg = (TestMessage) message;
+////        try (val writer = new BufferedWriter(new OutputStreamWriter(stream, US_ASCII))) {
+////            writer.write(msg.getType().name() + ":" + msg.getContent() + "\n");
+////            writer.flush();
+////        }
+//        val line = msg.getType().name() + ":" + msg.getContent() + "\n";
+//        log.info("Encoded-Message (line): [{}]", line);
+//        stream.write(line.getBytes(US_ASCII));
+////        stream.flush();
+//    };
 }

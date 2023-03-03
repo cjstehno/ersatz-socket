@@ -53,6 +53,7 @@ class ErsatzSocketServerTextTest {
             cfg.decoder(decoder);
             cfg.encoder(TestMessage.class, encoder);
         });
+        log.info("Setup the server.");
     }
 
     // FIXME: pull this into a separate extension for just doing this
@@ -60,7 +61,8 @@ class ErsatzSocketServerTextTest {
     public void afterEach() throws Exception {
         if (server != null) {
             server.close();
-            server.resetInteractions();
+            server = null;
+            log.info("Tore-down the server.");
         }
     }
 
@@ -69,12 +71,12 @@ class ErsatzSocketServerTextTest {
     void generalUsage(final String label, final boolean ssl, final Decoder<TestMessage> decoder, final Encoder encoder) throws Exception {
         setupServer(ssl, decoder, encoder);
 
+        val messageCount = 3;
+
         server.interactions(ix -> {
-            ix.onConnect(ctx -> ctx.send(createSend("3")));
+            ix.onConnect(ctx -> ctx.send(createSend(String.valueOf(messageCount))));
             ix.onMessage(ofType(MESSAGE), (ctx, message) -> ctx.send(createReply(message.getContent())));
         });
-
-        val latch = new CountDownLatch(3);
 
         val client = new ErsatzSocketClient<TestMessage>(cfg -> {
             cfg.port(server.getPort());
@@ -83,44 +85,49 @@ class ErsatzSocketServerTextTest {
             cfg.encoder(encoder);
         });
 
-        // when I get the "send" message -> send that number of messages
-        client.onMessage((sender, message) -> {
-            switch (message.getType()) {
-                case SEND -> {
-                    try {
-                        log.info("Sending {} replies", message.getContent());
-                        for (int i = 0; i < parseInt(message.getContent()); i++) {
-                            sender.send(createMessage("value-" + i));
+        try {
+            val latch = new CountDownLatch(messageCount);
+
+            // when I get the "send" message -> send that number of messages
+            client.onMessage((sender, message) -> {
+                switch (message.getType()) {
+                    case SEND -> {
+                        try {
+                            log.info("Sending {} replies", message.getContent());
+                            for (int i = 0; i < parseInt(message.getContent()); i++) {
+                                sender.send(createMessage("value-" + i));
+                            }
+                        } catch (Exception ex) {
+                            log.error("Problem sending messages from client: {}", ex.getMessage(), ex);
                         }
-                    } catch (Exception ex) {
-                        ex.printStackTrace();
                     }
-                }
-                case REPLY -> {
-                    try {
-                        log.info("Client-Received-Reply: {}", message);
-                        latch.countDown();
-                    } catch (Exception ex) {
-                        ex.printStackTrace();
+                    case REPLY -> {
+                        try {
+                            log.info("Client-Received-Reply: {}", message);
+                            latch.countDown();
+                        } catch (Exception ex) {
+                            log.error("Problem handling server reply on client: {}", ex.getMessage(), ex);
+                        }
                     }
+                    default -> throw new IllegalArgumentException("Unknown message: " + message);
                 }
-                default -> throw new IllegalArgumentException("Unknown message: " + message);
-            }
-        });
+            });
 
-        client.connect();
+            client.connect();
 
-        assertTrue(latch.await(30, SECONDS), "Timed-out before receiving expected replies.");
+            assertTrue(latch.await(30, SECONDS), "Timed-out before receiving expected replies.");
 
-        client.disconnect();
+        } finally {
+            client.disconnect();
+        }
     }
 
+    // FIXME: issue
     private static Stream<Arguments> argumentsProvider() {
         return Stream.of(
             // text
-            // FIXME: there is some odd issue with this scenario
-            Arguments.of("text codec without ssl", false, TextCodec.DECODER, TextCodec.ENCODER)/*,
-            Arguments.of("text codec with ssl", true, TextCodec.DECODER, TextCodec.ENCODER),
+            Arguments.of("text codec without ssl", false, TextCodec.DECODER, TextCodec.ENCODER),
+            Arguments.of("text codec with ssl", true, TextCodec.DECODER, TextCodec.ENCODER)/*,
 
             // binary
             Arguments.of("binary codec without ssl", false, BinaryCodec.DECODER, BinaryCodec.ENCODER),

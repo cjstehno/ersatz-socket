@@ -127,7 +127,7 @@ public class ErsatzSocketClient<D> implements Sender {
                     // FIXME: do better
                     cause.printStackTrace();
                 } else {
-                    log.warn("Caught-Exception: {}", cause.getMessage(), cause);
+                    //log.warn("Caught-Exception: {}", cause.getMessage(), cause);
                 }
             }
         });
